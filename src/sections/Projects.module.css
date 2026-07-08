@@ -1,0 +1,60 @@
+.projects {
+  padding: 6rem 0;
+  border-top: 1px solid #1e1e1e;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #fff;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  display: block;
+  padding: 1.5rem;
+  background: #111;
+  border: 1px solid #1e1e1e;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.card:hover {
+  border-color: #6ee7b7;
+  transform: translateY(-2px);
+}
+
+.card h3 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.card p {
+  color: #777;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag {
+  padding: 0.2rem 0.65rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: #6ee7b7;
+}

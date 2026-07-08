@@ -1,0 +1,37 @@
+.about {
+  padding: 6rem 0;
+  border-top: 1px solid #1e1e1e;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #fff;
+}
+
+.content {
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.content p {
+  color: #999;
+  line-height: 1.8;
+  margin-bottom: 1rem;
+}
+
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  padding: 0.35rem 0.85rem;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #aaa;
+}

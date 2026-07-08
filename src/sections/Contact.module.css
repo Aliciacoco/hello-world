@@ -1,0 +1,34 @@
+.contact {
+  padding: 6rem 0;
+  border-top: 1px solid #1e1e1e;
+}
+
+.sectionTitle {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.intro {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.links a {
+  color: #6ee7b7;
+  text-decoration: none;
+  font-size: 0.95rem;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.links a:hover {
+  border-color: #6ee7b7;
+}

@@ -21,7 +21,7 @@ export async function getWrongAnswers(): Promise<WrongAnswer[]> {
 export async function saveWrongAnswer(item: Omit<WrongAnswer, 'id' | 'date'>): Promise<void> {
   const body: WrongAnswer = {
     ...item,
-    id: crypto.randomUUID(),
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     date: Date.now(),
   }
   const res = await fetch(API, {

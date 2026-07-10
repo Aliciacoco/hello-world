@@ -1,15 +1,32 @@
-import { useState } from 'react'
-import { getWrongAnswers, clearWrongAnswers } from '../utils/storage'
+import { useState, useEffect } from 'react'
+import { getWrongAnswers, clearWrongAnswers, type WrongAnswer } from '../utils/storage'
 import styles from './WrongAnswers.module.css'
 
 export default function WrongAnswers() {
-  const [list, setList] = useState(() => getWrongAnswers())
+  const [list, setList] = useState<WrongAnswer[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleClear = () => {
+  useEffect(() => {
+    getWrongAnswers().then(data => {
+      setList(data)
+      setLoading(false)
+    })
+  }, [])
+
+  const handleClear = async () => {
     if (confirm('确定清空所有错题吗？')) {
-      clearWrongAnswers()
+      await clearWrongAnswers()
       setList([])
     }
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <h1 className={styles.title}>错题本</h1>
+        <p className={styles.empty}>加载中...</p>
+      </div>
+    )
   }
 
   if (list.length === 0) {

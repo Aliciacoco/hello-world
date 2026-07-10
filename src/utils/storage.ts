@@ -10,22 +10,29 @@ export interface WrongAnswer {
   date: number
 }
 
-const KEY = 'combinatorics_wrong_answers'
+const API = '/api/wrong-answers'
 
-export function getWrongAnswers(): WrongAnswer[] {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || '[]')
-  } catch {
-    return []
+export async function getWrongAnswers(): Promise<WrongAnswer[]> {
+  const res = await fetch(API)
+  if (!res.ok) throw new Error('获取错题失败')
+  return res.json()
+}
+
+export async function saveWrongAnswer(item: Omit<WrongAnswer, 'id' | 'date'>): Promise<void> {
+  const body: WrongAnswer = {
+    ...item,
+    id: crypto.randomUUID(),
+    date: Date.now(),
   }
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error('保存失败')
 }
 
-export function saveWrongAnswer(item: Omit<WrongAnswer, 'id' | 'date'>): void {
-  const list = getWrongAnswers()
-  list.unshift({ ...item, id: crypto.randomUUID(), date: Date.now() })
-  localStorage.setItem(KEY, JSON.stringify(list))
-}
-
-export function clearWrongAnswers(): void {
-  localStorage.removeItem(KEY)
+export async function clearWrongAnswers(): Promise<void> {
+  const res = await fetch(API, { method: 'DELETE' })
+  if (!res.ok) throw new Error('清空失败')
 }

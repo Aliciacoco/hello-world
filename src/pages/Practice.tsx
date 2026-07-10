@@ -35,12 +35,12 @@ export default function Practice() {
     }
   }
 
-  const handleSubmitReason = () => {
+  const handleSubmitReason = async () => {
     if (!reason.trim()) {
       setError('请填写原因')
       return
     }
-    saveWrongAnswer({
+    await saveWrongAnswer({
       question,
       userAnswer: parseInt(input.trim(), 10),
       correctAnswer: calculateAnswer(question),

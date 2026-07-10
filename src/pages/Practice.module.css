@@ -1,0 +1,121 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  background: #f5f5f5;
+}
+
+.title {
+  font-size: 1.8rem;
+  margin-bottom: 32px;
+  color: #222;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.questionText {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1.2rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: #4f8ef7;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1rem;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  resize: none;
+  transition: border-color 0.2s;
+}
+
+.textarea:focus {
+  border-color: #4f8ef7;
+}
+
+.btn {
+  padding: 12px 32px;
+  font-size: 1rem;
+  background: #4f8ef7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn:hover {
+  background: #2f6de0;
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.wrongHint {
+  color: #e53e3e;
+  font-weight: 600;
+  margin: 0;
+}
+
+.explanationGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.correctAnswer {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #38a169;
+  margin: 0;
+}
+
+.explanation {
+  font-size: 1rem;
+  color: #555;
+  text-align: center;
+  margin: 0;
+  line-height: 1.6;
+}

@@ -1,25 +1,13 @@
 .container {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 20px;
-  background: #f5f5f5;
-}
-
-.title {
-  font-size: 1.8rem;
-  margin-bottom: 32px;
-  color: #222;
+  width: 100%;
 }
 
 .card {
-  background: #fff;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
   padding: 48px 40px;
   width: 100%;
-  max-width: 480px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,9 +15,10 @@
 }
 
 .questionText {
-  font-size: 2.4rem;
-  font-weight: 700;
-  color: #333;
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #e8e8e8;
+  letter-spacing: 0.02em;
 }
 
 .inputGroup {
@@ -42,57 +31,67 @@
 
 .input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   font-size: 1.2rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  background: #0f0f0f;
+  border: 2px solid #2a2a2a;
+  border-radius: 10px;
+  color: #e8e8e8;
   text-align: center;
   outline: none;
   transition: border-color 0.2s;
 }
 
 .input:focus {
-  border-color: #4f8ef7;
+  border-color: #6ee7b7;
 }
 
 .textarea {
   width: 100%;
   padding: 12px 16px;
   font-size: 1rem;
-  border: 2px solid #ddd;
-  border-radius: 8px;
+  background: #0f0f0f;
+  border: 2px solid #2a2a2a;
+  border-radius: 10px;
+  color: #e8e8e8;
   outline: none;
   resize: none;
   transition: border-color 0.2s;
 }
 
 .textarea:focus {
-  border-color: #4f8ef7;
+  border-color: #6ee7b7;
 }
 
 .btn {
-  padding: 12px 32px;
+  padding: 13px 36px;
   font-size: 1rem;
-  background: #4f8ef7;
-  color: #fff;
+  font-weight: 600;
+  background: #6ee7b7;
+  color: #0a0a0a;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: opacity 0.2s;
 }
 
 .btn:hover {
-  background: #2f6de0;
+  opacity: 0.85;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .error {
-  color: #e53e3e;
+  color: #fc8181;
   font-size: 0.9rem;
   margin: 0;
 }
 
 .wrongHint {
-  color: #e53e3e;
+  color: #fc8181;
   font-weight: 600;
   margin: 0;
 }
@@ -107,15 +106,15 @@
 
 .correctAnswer {
   font-size: 1.2rem;
-  font-weight: 600;
-  color: #38a169;
+  font-weight: 700;
+  color: #6ee7b7;
   margin: 0;
 }
 
 .explanation {
   font-size: 1rem;
-  color: #555;
+  color: #aaa;
   text-align: center;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.7;
 }

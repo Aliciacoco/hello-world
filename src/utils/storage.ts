@@ -43,12 +43,17 @@ export async function getWrongAnswers(): Promise<WrongAnswer[]> {
   return res.json()
 }
 
-export async function saveWrongAnswer(item: Omit<WrongAnswer, 'id' | 'date'>): Promise<void> {
-  const body: WrongAnswer = {
+type WrongAnswerInput =
+  | Omit<MathWrongAnswer, 'id' | 'date'>
+  | Omit<IdiomWrongAnswer, 'id' | 'date'>
+  | Omit<ExamWrongAnswer, 'id' | 'date'>
+
+export async function saveWrongAnswer(item: WrongAnswerInput): Promise<void> {
+  const body = {
     ...item,
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     date: Date.now(),
-  }
+  } as WrongAnswer
   const res = await fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -1,7 +1,8 @@
 import type { Question } from './combinatorics'
 
-export interface WrongAnswer {
+export interface MathWrongAnswer {
   id: string
+  type?: 'math'
   question: Question
   userAnswer: number
   correctAnswer: number
@@ -9,6 +10,30 @@ export interface WrongAnswer {
   reason: string
   date: number
 }
+
+export interface IdiomWrongAnswer {
+  id: string
+  type: 'idiom'
+  word: string
+  userAnswer: string
+  explanation: string
+  reason: string
+  date: number
+}
+
+export interface ExamWrongAnswer {
+  id: string
+  type: 'exam'
+  stem: string
+  options: string
+  answer: string
+  explanation: string
+  userAnswer: string
+  reason: string
+  date: number
+}
+
+export type WrongAnswer = MathWrongAnswer | IdiomWrongAnswer | ExamWrongAnswer
 
 const API = '/api/wrong-answers'
 
@@ -30,6 +55,11 @@ export async function saveWrongAnswer(item: Omit<WrongAnswer, 'id' | 'date'>): P
     body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error('保存失败')
+}
+
+export async function deleteWrongAnswer(id: string): Promise<void> {
+  const res = await fetch(`${API}/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('删除失败')
 }
 
 export async function clearWrongAnswers(): Promise<void> {

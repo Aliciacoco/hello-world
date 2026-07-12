@@ -8,7 +8,8 @@ export default function Navbar() {
         <NavLink to="/" className={styles.logo}>练习本</NavLink>
         <ul className={styles.links}>
           <li><NavLink to="/" end className={({ isActive }) => isActive ? styles.active : ''}>练习</NavLink></li>
-          <li><NavLink to="/wrong-answers" className={({ isActive }) => isActive ? styles.active : ''}>错题本</NavLink></li>
+          <li><NavLink to="/bank" className={({ isActive }) => isActive ? styles.active : ''}>题库</NavLink></li>
+          <li><NavLink to="/points" className={({ isActive }) => isActive ? styles.active : ''}>积分</NavLink></li>
         </ul>
       </nav>
     </header>

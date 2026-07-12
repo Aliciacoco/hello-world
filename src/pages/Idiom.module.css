@@ -1,29 +1,131 @@
+/* Idiom 专用样式，搭配 Practice.module.css 使用 */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.cardLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* iOS 分段控件 */
+.tabs {
+  display: flex;
+  background: rgba(120, 120, 128, 0.12);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.tab {
+  padding: 4px 14px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6c6c70;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.tab:hover {
+  color: #1c1c1e;
+}
+
+.tabActive {
+  background: #ffffff;
+  color: #1c1c1e;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 .word {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #6ee7b7;
-  letter-spacing: 0.1em;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1c1c1e;
+  letter-spacing: 0.06em;
   text-align: center;
 }
 
-.prompt {
-  color: #888;
-  font-size: 0.95rem;
+.hint {
+  color: #8e8e93;
+  font-size: 0.88rem;
   text-align: center;
-  margin: 0;
-}
-
-.intro {
-  color: #888;
-  font-size: 1rem;
-  text-align: center;
-  line-height: 1.7;
-  margin: 0;
+  margin: 2px 0 8px;
 }
 
 .loading {
-  color: #6ee7b7;
-  font-size: 1rem;
+  color: #8e8e93;
+  font-size: 0.9rem;
   text-align: center;
   margin: 0;
 }
+
+/* 上传区域 */
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.uploadBtn {
+  padding: 7px 14px;
+  background: transparent;
+  border: 1.5px solid rgba(60, 60, 67, 0.25);
+  border-radius: 8px;
+  color: #6c6c70;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.uploadBtn:hover {
+  border-color: #0ABAB5;
+  color: #0ABAB5;
+}
+
+.imageHint {
+  font-size: 0.82rem;
+  color: #34c759;
+}
+
+.cancelBtn {
+  padding: 7px 14px;
+  background: transparent;
+  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border-radius: 8px;
+  color: #8e8e93;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+  border-color: #8e8e93;
+  color: #1c1c1e;
+}
+
+/* 下方未使用的旧类保留为空，防止 TSX 报 undefined */
+.uploadToggle {}
+.uploadArea {}
+.emptyHint {}
+.uploadLink {}
+.bankList {}
+.bankItem {}
+.bankWord {}
+.bankExpl {}
+.bankReview {}

@@ -1,0 +1,19 @@
+{
+  "balance": 0.6,
+  "history": [
+    {
+      "id": "1783857663880-nc5wspepya",
+      "type": "earn",
+      "amount": 0.5,
+      "reason": "成语辨析答对",
+      "date": 1783857663880
+    },
+    {
+      "id": "1783857644264-qaw0mzmfulg",
+      "type": "earn",
+      "amount": 0.1,
+      "reason": "排列组合答对",
+      "date": 1783857644264
+    }
+  ]
+}

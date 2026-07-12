@@ -1,0 +1,370 @@
+.page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 72px 20px 60px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* iOS 分段控件 */
+.tabs {
+  display: flex;
+  background: rgba(120, 120, 128, 0.12);
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.tab {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #6c6c70;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.tab:hover {
+  color: #1c1c1e;
+}
+
+.tabActive {
+  background: #ffffff;
+  color: #1c1c1e;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.empty {
+  text-align: center;
+  color: #8e8e93;
+  margin-top: 60px;
+  font-size: 0.93rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 每条题目 */
+.item {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.itemHeader:hover {
+  background: #f9f9f9;
+}
+
+.itemTitle {
+  color: #1c1c1e;
+  font-size: 0.93rem;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 10px;
+}
+
+.reviewBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #fff0f0;
+  color: #ff3b30;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.chevron {
+  color: #c7c7cc;
+  font-size: 0.7rem;
+}
+
+.itemBody {
+  padding: 0 16px 14px;
+  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stem {
+  color: #3c3c43;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+}
+
+.options {
+  color: #6c6c70;
+  font-size: 0.86rem;
+  line-height: 1.9;
+  margin: 0;
+  font-family: inherit;
+  white-space: pre-wrap;
+}
+
+.answer {
+  color: #0ABAB5;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin: 4px 0 0;
+}
+
+.explanation {
+  color: #8e8e93;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* 答错记录 */
+.reviews {
+  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.reviewTitle {
+  color: #c7c7cc;
+  font-size: 0.72rem;
+  margin: 0 0 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reviewRow {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+  gap: 6px;
+}
+
+.reviewDate {
+  color: #c7c7cc;
+  font-size: 0.76rem;
+}
+
+.reviewAnswer {
+  color: #ff3b30;
+  font-size: 0.82rem;
+}
+
+.deleteReviewBtn {
+  margin-left: auto;
+  padding: 1px 8px;
+  font-size: 0.72rem;
+  background: none;
+  color: #c7c7cc;
+  border: 1px solid rgba(60, 60, 67, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.deleteReviewBtn:hover {
+  color: #ff3b30;
+  border-color: #ff3b30;
+}
+
+.reviewFeedback {
+  color: #8e8e93;
+  font-size: 0.8rem;
+  margin: 2px 0 4px 0;
+  line-height: 1.5;
+  width: 100%;
+}
+
+/* 操作按钮行 */
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(60, 60, 67, 0.1);
+}
+
+.editBtn {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border-radius: 7px;
+  color: #6c6c70;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.editBtn:hover {
+  border-color: #0ABAB5;
+  color: #0ABAB5;
+}
+
+.deleteBtn {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1.5px solid rgba(255, 59, 48, 0.3);
+  border-radius: 7px;
+  color: #ff3b30;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.deleteBtn:hover {
+  background: #fff0f0;
+}
+
+/* 编辑表单 */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.editLabel {
+  color: #8e8e93;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.editField {
+  background: #f2f2f7;
+  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  border-radius: 8px;
+  color: #1c1c1e;
+  font-size: 0.9rem;
+  padding: 8px 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.editField:focus {
+  border-color: #0ABAB5;
+  background: #ffffff;
+}
+
+.editArea {
+  background: #f2f2f7;
+  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  border-radius: 8px;
+  color: #1c1c1e;
+  font-size: 0.87rem;
+  padding: 8px 11px;
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.6;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.editArea:focus {
+  border-color: #0ABAB5;
+  background: #ffffff;
+}
+
+.saveBtn {
+  padding: 6px 16px;
+  background: #0ABAB5;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.saveBtn:hover {
+  opacity: 0.82;
+}
+
+.saveBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  padding: 6px 13px;
+  background: transparent;
+  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border-radius: 8px;
+  color: #8e8e93;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.cancelBtn:hover {
+  color: #1c1c1e;
+  border-color: rgba(60, 60, 67, 0.35);
+}
+
+/* 速算记录 */
+.speedItem {
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+.speedQuestion {
+  color: #1c1c1e;
+  font-size: 0.93rem;
+  font-weight: 500;
+}
+
+.speedMeta {
+  color: #8e8e93;
+  font-size: 0.83rem;
+}

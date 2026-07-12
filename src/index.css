@@ -5,13 +5,16 @@
 }
 
 :root {
-  --bg: #0f0f0f;
-  --bg-card: #1a1a1a;
-  --text: #e8e8e8;
-  --text-muted: #888;
-  --accent: #6ee7b7;
-  --border: #2a2a2a;
-  --section-padding: 100px 0;
+  --bg: #f2f2f7;
+  --bg-card: #ffffff;
+  --text: #1c1c1e;
+  --text-secondary: #6c6c70;
+  --text-tertiary: #8e8e93;
+  --accent: #0ABAB5;
+  --green: #34c759;
+  --red: #ff3b30;
+  --separator: rgba(60, 60, 67, 0.18);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 html {
@@ -19,14 +22,16 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.6;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 0 24px;
 }
@@ -37,5 +42,5 @@ a {
 }
 
 a:hover {
-  text-decoration: underline;
+  opacity: 0.75;
 }

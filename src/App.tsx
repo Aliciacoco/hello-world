@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
-import WrongAnswers from './pages/WrongAnswers'
+import BankPage from './pages/BankPage'
+import PointsPage from './pages/PointsPage'
 
 export default function App() {
   return (
@@ -10,7 +11,8 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/wrong-answers" element={<WrongAnswers />} />
+          <Route path="/bank" element={<BankPage />} />
+          <Route path="/points" element={<PointsPage />} />
         </Routes>
       </main>
     </BrowserRouter>

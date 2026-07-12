@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
-import { generateQuestion, calculateAnswer, getExplanation, type Question } from '../utils/combinatorics'
+import { generateQuestion, calculateAnswer, type Question } from '../utils/combinatorics'
 import { saveWrongAnswer } from '../utils/storage'
 import styles from './Practice.module.css'
 
-type Phase = 'question' | 'wrong-reason' | 'explanation'
+type Phase = 'question' | 'wrong-reason' | 'loading' | 'explanation'
 
 export default function Practice() {
   const [question, setQuestion] = useState<Question>(() => generateQuestion())
@@ -11,12 +11,14 @@ export default function Practice() {
   const [phase, setPhase] = useState<Phase>('question')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
+  const [aiExplanation, setAiExplanation] = useState('')
 
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion())
     setInput('')
     setReason('')
     setError('')
+    setAiExplanation('')
     setPhase('question')
   }, [])
 
@@ -28,6 +30,11 @@ export default function Practice() {
     }
     const correct = calculateAnswer(question)
     if (userAnswer === correct) {
+      fetch('/api/points/earn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 0.1, reason: '排列组合答对' }),
+      }).catch(() => {})
       nextQuestion()
     } else {
       setError('')
@@ -40,25 +47,42 @@ export default function Practice() {
       setError('请填写原因')
       return
     }
-    await saveWrongAnswer({
-      question,
-      userAnswer: parseInt(input.trim(), 10),
-      correctAnswer: calculateAnswer(question),
-      explanation: getExplanation(question),
-      reason: reason.trim(),
-    })
     setError('')
+    setPhase('loading')
+    const userAnswer = parseInt(input.trim(), 10)
+    const correctAnswer = calculateAnswer(question)
+    let explanation = ''
+    try {
+      const res = await fetch('/api/math/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: question.type, n: question.n, r: question.r, userAnswer, correctAnswer, reason: reason.trim() }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        explanation = data.explanation || ''
+      }
+    } catch {
+      // 降级到本地解析
+    }
+    if (!explanation) {
+      const { getExplanation } = await import('../utils/combinatorics')
+      explanation = getExplanation(question)
+    }
+    setAiExplanation(explanation)
+    await saveWrongAnswer({ question, userAnswer, correctAnswer, explanation, reason: reason.trim() })
     setPhase('explanation')
   }
 
   const correct = calculateAnswer(question)
-  const explanation = getExplanation(question)
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>排列组合练习</h1>
-
       <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <span className={styles.cardLabel}>排列组合</span>
+        </div>
+
         <div className={styles.questionText}>
           {question.type === 'A' ? 'A' : 'C'}
           <sub>{question.n}</sub>
@@ -97,10 +121,14 @@ export default function Practice() {
           </div>
         )}
 
+        {phase === 'loading' && (
+          <p className={styles.wrongHint}>AI 解析中...</p>
+        )}
+
         {phase === 'explanation' && (
           <div className={styles.explanationGroup}>
             <p className={styles.correctAnswer}>正确答案：{correct}</p>
-            <p className={styles.explanation}>{explanation}</p>
+            <p className={styles.explanation}>{aiExplanation}</p>
             <button className={styles.btn} onClick={nextQuestion}>我明白了</button>
           </div>
         )}

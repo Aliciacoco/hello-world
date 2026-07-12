@@ -1,0 +1,306 @@
+.page {
+  min-height: 100vh;
+  padding: 72px 20px 60px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* 余额卡片 */
+.balanceCard {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 32px 28px 28px;
+  text-align: center;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.balanceLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 10px;
+}
+
+.balanceNum {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #0ABAB5;
+  letter-spacing: -3px;
+  line-height: 1;
+  margin: 0 0 6px;
+}
+
+.balanceHint {
+  font-size: 0.93rem;
+  color: #6c6c70;
+  margin: 0 0 22px;
+}
+
+.redeemBtn {
+  padding: 10px 28px;
+  background: #0ABAB5;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.redeemBtn:hover {
+  opacity: 0.82;
+}
+
+/* 弹窗 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modalTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin: 0 0 20px;
+  letter-spacing: -0.01em;
+}
+
+.label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8e8e93;
+  margin: 14px 0 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  background: #f2f2f7;
+  border-radius: 10px;
+  font-size: 0.93rem;
+  color: #1c1c1e;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+
+.input:focus {
+  border-color: #0ABAB5;
+  background: #ffffff;
+}
+
+.fileInput {
+  font-size: 0.85rem;
+  color: #6c6c70;
+}
+
+.imgPreview {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.error {
+  color: #ff3b30;
+  font-size: 0.83rem;
+  margin: 8px 0 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.confirmBtn {
+  flex: 1;
+  padding: 11px;
+  background: #0ABAB5;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  font-family: inherit;
+}
+
+.confirmBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  opacity: 0.82;
+}
+
+.cancelBtn {
+  padding: 11px 18px;
+  background: #f2f2f7;
+  color: #6c6c70;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.93rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.cancelBtn:hover {
+  background: #e5e5ea;
+}
+
+/* 历史记录 */
+.historySection {
+  margin-top: 8px;
+}
+
+.historyTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 10px;
+  padding: 0 4px;
+}
+
+.empty {
+  text-align: center;
+  color: #8e8e93;
+  font-size: 0.9rem;
+  margin-top: 48px;
+}
+
+/* 时间线 */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entry {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 13px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.entryDot {
+  display: none; /* 不用圆点，用左边框区分 */
+}
+
+.earn {
+  border-left: 3px solid #34c759;
+}
+
+.redeem {
+  border-left: 3px solid #34c759;
+}
+
+.entryBody {}
+
+.entryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.entryReason {
+  font-size: 0.92rem;
+  color: #1c1c1e;
+  font-weight: 500;
+}
+
+.entryAmount {
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.earn .entryAmount {
+  color: #34c759;
+}
+
+.redeem .entryAmount {
+  color: #0ABAB5;
+}
+
+.entryDate {
+  font-size: 0.75rem;
+  color: #c7c7cc;
+  margin: 3px 0 0;
+}
+
+.entryLink {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: #0ABAB5;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.entryLink:hover {
+  opacity: 0.75;
+}
+
+.entryImg {
+  display: block;
+  margin-top: 8px;
+  width: 100%;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.deleteEntryBtn {
+  margin-top: 8px;
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: none;
+  color: #c7c7cc;
+  border: 1px solid rgba(60, 60, 67, 0.18);
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.deleteEntryBtn:hover {
+  color: #ff3b30;
+  border-color: rgba(255, 59, 48, 0.35);
+}

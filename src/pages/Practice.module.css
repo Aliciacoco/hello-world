@@ -1,97 +1,128 @@
+/* 共享样式：Practice + Idiom 都引用这个文件 */
+
 .container {
   width: 100%;
 }
 
+/* 卡片整体 */
 .card {
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+  background: #ffffff;
   border-radius: 16px;
-  padding: 48px 40px;
+  padding: 16px 20px 24px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
+/* 卡片顶部标题行（和 Idiom / ExamCard 对齐） */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cardLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* 兼容旧的 .title（保留为空防止报错） */
+.title {}
+
+/* 大题目文字 */
 .questionText {
-  font-size: 2.8rem;
-  font-weight: 800;
-  color: #e8e8e8;
-  letter-spacing: 0.02em;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1c1c1e;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
 .input {
   width: 100%;
-  padding: 14px 18px;
-  font-size: 1.2rem;
-  background: #0f0f0f;
-  border: 2px solid #2a2a2a;
+  padding: 11px 16px;
+  font-size: 1.1rem;
+  background: #f2f2f7;
+  border: 1.5px solid rgba(60, 60, 67, 0.18);
   border-radius: 10px;
-  color: #e8e8e8;
+  color: #1c1c1e;
   text-align: center;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
 }
 
 .input:focus {
-  border-color: #6ee7b7;
+  border-color: #0ABAB5;
+  background: #ffffff;
 }
 
 .textarea {
   width: 100%;
-  padding: 12px 16px;
-  font-size: 1rem;
-  background: #0f0f0f;
-  border: 2px solid #2a2a2a;
+  padding: 11px 14px;
+  font-size: 0.93rem;
+  background: #f2f2f7;
+  border: 1.5px solid rgba(60, 60, 67, 0.18);
   border-radius: 10px;
-  color: #e8e8e8;
+  color: #1c1c1e;
   outline: none;
   resize: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+  line-height: 1.6;
 }
 
 .textarea:focus {
-  border-color: #6ee7b7;
+  border-color: #0ABAB5;
+  background: #ffffff;
 }
 
 .btn {
-  padding: 13px 36px;
-  font-size: 1rem;
+  padding: 11px 28px;
+  font-size: 0.93rem;
   font-weight: 600;
-  background: #6ee7b7;
-  color: #0a0a0a;
+  background: #0ABAB5;
+  color: #ffffff;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity 0.15s;
+  font-family: inherit;
 }
 
 .btn:hover {
-  opacity: 0.85;
+  opacity: 0.82;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
 .error {
-  color: #fc8181;
-  font-size: 0.9rem;
+  color: #ff3b30;
+  font-size: 0.85rem;
   margin: 0;
 }
 
 .wrongHint {
-  color: #fc8181;
+  color: #ff3b30;
+  font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
 }
@@ -100,20 +131,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
 }
 
 .correctAnswer {
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: #6ee7b7;
+  color: #34c759;
   margin: 0;
 }
 
 .explanation {
-  font-size: 1rem;
-  color: #aaa;
+  font-size: 0.88rem;
+  color: #6c6c70;
   text-align: center;
   margin: 0;
   line-height: 1.7;

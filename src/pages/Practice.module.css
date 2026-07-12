@@ -1,23 +1,60 @@
 /* 共享样式：Practice + Idiom 都引用这个文件 */
 
+/* ── 动效关键帧 ─────────────────────────────── */
+@keyframes correctPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.028); }
+  65%  { transform: scale(0.986); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  18%  { transform: translateX(-6px); }
+  36%  { transform: translateX(6px); }
+  54%  { transform: translateX(-4px); }
+  72%  { transform: translateX(4px); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 卡片容器 ────────────────────────────────── */
 .container {
   width: 100%;
 }
 
-/* 卡片整体 */
 .card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 16px;
-  padding: 16px 20px 24px;
+  border: 1px solid var(--border);
+  padding: 18px 20px 24px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s ease;
 }
 
-/* 卡片顶部标题行（和 Idiom / ExamCard 对齐） */
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.correctAnim { animation: correctPop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.wrongAnim   { animation: wrongShake 0.38s ease-out; }
+
+/* ── 卡片头部 ────────────────────────────────── */
 .cardHeader {
   display: flex;
   align-items: center;
@@ -26,25 +63,27 @@
 }
 
 .cardLabel {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  color: #8e8e93;
+  font-style: normal;
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
 }
 
-/* 兼容旧的 .title（保留为空防止报错） */
 .title {}
 
-/* 大题目文字 */
+/* ── 大题目数字 ─────────────────────────────── */
 .questionText {
-  font-size: 2.5rem;
+  font-size: 2.6rem;
   font-weight: 700;
-  color: #1c1c1e;
+  color: var(--text);
   letter-spacing: -0.02em;
   line-height: 1;
+  animation: slideInRight 0.22s ease-out;
 }
 
+/* ── 输入区域 ────────────────────────────────── */
 .inputGroup {
   display: flex;
   flex-direction: column;
@@ -56,72 +95,73 @@
 .input {
   width: 100%;
   padding: 11px 16px;
-  font-size: 1.1rem;
-  background: #f2f2f7;
-  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  font-size: 1rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  background: var(--bg-inset);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
-  color: #1c1c1e;
+  color: var(--text);
   text-align: center;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
 }
 
 .input:focus {
-  border-color: #0ABAB5;
-  background: #ffffff;
+  border-color: var(--accent);
+  background: var(--bg-card);
 }
 
 .textarea {
   width: 100%;
   padding: 11px 14px;
   font-size: 0.93rem;
-  background: #f2f2f7;
-  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  background: var(--bg-inset);
+  border: 1.5px solid var(--border);
   border-radius: 10px;
-  color: #1c1c1e;
+  color: var(--text);
   outline: none;
   resize: none;
   transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .textarea:focus {
-  border-color: #0ABAB5;
-  background: #ffffff;
+  border-color: var(--accent);
+  background: var(--bg-card);
 }
 
+/* ── 按钮 ────────────────────────────────────── */
 .btn {
   padding: 11px 28px;
   font-size: 0.93rem;
   font-weight: 600;
-  background: #0ABAB5;
-  color: #ffffff;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  background: var(--accent);
+  color: #f7f4ef;
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  transition: opacity 0.15s;
-  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s;
 }
 
-.btn:hover {
-  opacity: 0.82;
-}
+.btn:hover  { opacity: 0.85; }
+.btn:active { transform: scale(0.97); }
 
 .btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
+/* ── 反馈文字 ────────────────────────────────── */
 .error {
-  color: #ff3b30;
+  color: var(--red);
   font-size: 0.85rem;
   margin: 0;
 }
 
 .wrongHint {
-  color: #ff3b30;
+  color: var(--red);
   font-size: 0.9rem;
   font-weight: 600;
   margin: 0;
@@ -133,19 +173,20 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+  animation: fadeIn 0.25s ease-out;
 }
 
 .correctAnswer {
   font-size: 1rem;
   font-weight: 700;
-  color: #34c759;
+  color: var(--green);
   margin: 0;
 }
 
 .explanation {
   font-size: 0.88rem;
-  color: #6c6c70;
+  color: var(--text-secondary);
   text-align: center;
   margin: 0;
-  line-height: 1.7;
+  line-height: 1.8;
 }

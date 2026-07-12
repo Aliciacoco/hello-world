@@ -12,6 +12,7 @@ export default function Home() {
         <ExamCard subject="数量关系" bankType="math" pointsPerCorrect={1} />
         <ExamCard subject="判断推理" bankType="judgement" pointsPerCorrect={1} />
         <ExamCard subject="资料分析" bankType="analysis" pointsPerCorrect={1} />
+        <ExamCard subject="常识" bankType="changshi" pointsPerCorrect={0.5} openEnded />
       </div>
     </div>
   )

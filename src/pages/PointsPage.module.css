@@ -7,62 +7,64 @@
 
 /* 余额卡片 */
 .balanceCard {
-  background: #ffffff;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 32px 28px 28px;
+  padding: 36px 28px 30px;
   text-align: center;
   margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow);
 }
 
 .balanceLabel {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #8e8e93;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin: 0 0 10px;
+  letter-spacing: 0.1em;
+  margin: 0 0 12px;
 }
 
 .balanceNum {
-  font-size: 4rem;
+  font-size: 4.2rem;
   font-weight: 700;
-  color: #0ABAB5;
-  letter-spacing: -3px;
+  font-style: italic;
+  color: var(--accent);
+  letter-spacing: -2px;
   line-height: 1;
   margin: 0 0 6px;
 }
 
 .balanceHint {
-  font-size: 0.93rem;
-  color: #6c6c70;
-  margin: 0 0 22px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0 0 24px;
 }
 
 .redeemBtn {
-  padding: 10px 28px;
-  background: #0ABAB5;
-  color: #ffffff;
+  padding: 10px 32px;
+  background: var(--accent);
+  color: #f7f4ef;
   border: none;
   border-radius: 20px;
   font-size: 0.93rem;
   font-weight: 600;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
-  transition: opacity 0.15s;
-  font-family: inherit;
+  transition: opacity 0.15s, transform 0.1s;
 }
 
-.redeemBtn:hover {
-  opacity: 0.82;
-}
+.redeemBtn:hover  { opacity: 0.85; }
+.redeemBtn:active { transform: scale(0.97); }
 
 /* 弹窗 */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(44, 36, 34, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -71,54 +73,56 @@
 }
 
 .modal {
-  background: #ffffff;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 28px 24px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 60px rgba(120, 90, 60, 0.2);
 }
 
 .modalTitle {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1c1c1e;
+  font-style: italic;
+  color: var(--text);
   margin: 0 0 20px;
-  letter-spacing: -0.01em;
 }
 
 .label {
   display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #8e8e93;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
   margin: 14px 0 5px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .input {
   width: 100%;
   padding: 10px 13px;
-  border: 1.5px solid rgba(60, 60, 67, 0.18);
-  background: #f2f2f7;
+  border: 1.5px solid var(--border);
+  background: var(--bg-inset);
   border-radius: 10px;
   font-size: 0.93rem;
-  color: #1c1c1e;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  color: var(--text);
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
 }
 
 .input:focus {
-  border-color: #0ABAB5;
-  background: #ffffff;
+  border-color: var(--accent);
+  background: var(--bg-card);
 }
 
 .fileInput {
   font-size: 0.85rem;
-  color: #6c6c70;
+  color: var(--text-secondary);
+  font-family: 'Lora', 'LXGW WenKai', serif;
 }
 
 .imgPreview {
@@ -127,10 +131,11 @@
   object-fit: cover;
   border-radius: 10px;
   margin-top: 8px;
+  border: 1px solid var(--border);
 }
 
 .error {
-  color: #ff3b30;
+  color: var(--red);
   font-size: 0.83rem;
   margin: 8px 0 0;
 }
@@ -144,66 +149,56 @@
 .confirmBtn {
   flex: 1;
   padding: 11px;
-  background: #0ABAB5;
-  color: #ffffff;
+  background: var(--accent);
+  color: #f7f4ef;
   border: none;
   border-radius: 10px;
   font-size: 0.93rem;
   font-weight: 600;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: opacity 0.15s;
-  font-family: inherit;
 }
 
-.confirmBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.confirmBtn:hover:not(:disabled) {
-  opacity: 0.82;
-}
+.confirmBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.confirmBtn:hover:not(:disabled) { opacity: 0.85; }
 
 .cancelBtn {
   padding: 11px 18px;
-  background: #f2f2f7;
-  color: #6c6c70;
+  background: var(--bg-inset);
+  color: var(--text-secondary);
   border: none;
   border-radius: 10px;
   font-size: 0.93rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
-  font-family: inherit;
   transition: background 0.15s;
 }
 
-.cancelBtn:hover {
-  background: #e5e5ea;
-}
+.cancelBtn:hover { background: var(--separator); }
 
 /* 历史记录 */
-.historySection {
-  margin-top: 8px;
-}
+.historySection { margin-top: 8px; }
 
 .historyTitle {
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
   margin: 0 0 10px;
   padding: 0 4px;
 }
 
 .empty {
   text-align: center;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
+  font-style: italic;
   margin-top: 48px;
 }
 
-/* 时间线 */
 .timeline {
   display: flex;
   flex-direction: column;
@@ -211,23 +206,20 @@
 }
 
 .entry {
-  background: #ffffff;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 13px 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s;
 }
 
-.entryDot {
-  display: none; /* 不用圆点，用左边框区分 */
-}
+.entry:hover { box-shadow: var(--shadow-hover); }
 
-.earn {
-  border-left: 3px solid #34c759;
-}
+.entryDot { display: none; }
 
-.redeem {
-  border-left: 3px solid #34c759;
-}
+.earn   { border-left: 3px solid var(--green); }
+.redeem { border-left: 3px solid var(--accent); }
 
 .entryBody {}
 
@@ -240,7 +232,7 @@
 
 .entryReason {
   font-size: 0.92rem;
-  color: #1c1c1e;
+  color: var(--text);
   font-weight: 500;
 }
 
@@ -250,32 +242,26 @@
   white-space: nowrap;
 }
 
-.earn .entryAmount {
-  color: #34c759;
-}
-
-.redeem .entryAmount {
-  color: #0ABAB5;
-}
+.earn .entryAmount   { color: var(--green); }
+.redeem .entryAmount { color: var(--accent); }
 
 .entryDate {
   font-size: 0.75rem;
-  color: #c7c7cc;
+  color: var(--text-tertiary);
   margin: 3px 0 0;
+  font-style: italic;
 }
 
 .entryLink {
   display: inline-block;
   margin-top: 6px;
   font-size: 0.82rem;
-  color: #0ABAB5;
+  color: var(--accent);
   text-decoration: none;
   font-weight: 500;
 }
 
-.entryLink:hover {
-  opacity: 0.75;
-}
+.entryLink:hover { opacity: 0.75; }
 
 .entryImg {
   display: block;
@@ -284,23 +270,24 @@
   max-height: 120px;
   object-fit: cover;
   border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 .deleteEntryBtn {
   margin-top: 8px;
   padding: 2px 10px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   background: none;
-  color: #c7c7cc;
-  border: 1px solid rgba(60, 60, 67, 0.18);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
   border-radius: 5px;
   cursor: pointer;
-  font-family: inherit;
   transition: all 0.15s;
 }
 
 .deleteEntryBtn:hover {
-  color: #ff3b30;
-  border-color: rgba(255, 59, 48, 0.35);
+  color: var(--red);
+  border-color: rgba(192, 57, 43, 0.3);
 }

@@ -3,7 +3,7 @@ import { earnPoints } from '../utils/points'
 import styles from './ExamCard.module.css'
 
 type Mode = 'practice' | 'upload'
-type Phase = 'question' | 'result'
+type Phase = 'question' | 'judging' | 'result'
 
 interface BankQuestion {
   id: string
@@ -17,9 +17,17 @@ interface Props {
   subject: string
   bankType: string
   pointsPerCorrect: number
+  openEnded?: boolean
 }
 
-export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props) {
+// 确保每个选项单独一行，兼容 AI 输出格式不一的情况
+function formatOptions(options: string): string {
+  return options
+    .replace(/\s*([A-D][\.\、])/g, '\n$1')
+    .trimStart()
+}
+
+export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnded = false }: Props) {
   const [mode, setMode] = useState<Mode>('practice')
 
   const [question, setQuestion] = useState<BankQuestion | null>(null)
@@ -27,14 +35,16 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
   const [userAnswer, setUserAnswer] = useState('')
   const [phase, setPhase] = useState<Phase>('question')
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [aiFeedback, setAiFeedback] = useState('')
   const [error, setError] = useState('')
+  const [cardAnim, setCardAnim] = useState<'correct' | 'wrong' | ''>('')
 
   const [uploadText, setUploadText] = useState('')
   const [imageBase64, setImageBase64] = useState('')
   const [imagePreview, setImagePreview] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
-  const [uploadDone, setUploadDone] = useState(false)
+  const [uploadedItem, setUploadedItem] = useState<BankQuestion | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -43,6 +53,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
     setError('')
     setUserAnswer('')
     setIsCorrect(null)
+    setAiFeedback('')
     setPhase('question')
     try {
       const res = await fetch(`/api/bank/${bankType}/random`)
@@ -57,12 +68,43 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
 
   useEffect(() => { fetchQuestion() }, [fetchQuestion])
 
-  const handleSubmitAnswer = () => {
+  const handleSubmitAnswer = async () => {
     if (!userAnswer.trim()) { setError('请输入答案'); return }
     if (!question) return
     setError('')
+
+    if (openEnded) {
+      setPhase('judging')
+      try {
+        const res = await fetch(`/api/bank/${bankType}/judge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stem: question.stem,
+            userAnswer: userAnswer.trim(),
+            correctAnswer: question.answer,
+            explanation: question.explanation,
+          }),
+        })
+        if (!res.ok) throw new Error()
+        const data = await res.json()
+        setIsCorrect(data.correct)
+        setAiFeedback(data.feedback)
+        setCardAnim(data.correct ? 'correct' : 'wrong')
+        setTimeout(() => setCardAnim(''), 400)
+        setPhase('result')
+      } catch {
+        setError('判断失败，请重试')
+        setPhase('question')
+      }
+      return
+    }
+
+    // 选择题：本地字符串对比
     const correct = userAnswer.trim().toUpperCase() === question.answer.trim().toUpperCase()
     setIsCorrect(correct)
+    setCardAnim(correct ? 'correct' : 'wrong')
+    setTimeout(() => setCardAnim(''), 400)
     if (!correct) {
       fetch(`/api/bank/${bankType}/${question.id}/review`, {
         method: 'PATCH',
@@ -98,7 +140,8 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
         body: JSON.stringify({ text: uploadText.trim(), image: imageBase64 }),
       })
       if (!res.ok) throw new Error()
-      setUploadDone(true)
+      const item = await res.json()
+      setUploadedItem(item)
       setUploadText('')
       setImageBase64('')
       setImagePreview('')
@@ -112,12 +155,12 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      <div className={`${styles.card} ${cardAnim === 'correct' ? styles.correctAnim : ''} ${cardAnim === 'wrong' ? styles.wrongAnim : ''}`}>
         <div className={styles.header}>
           <span className={styles.label}>{subject}</span>
           <div className={styles.modeTabs}>
             <button className={`${styles.modeTab} ${mode === 'practice' ? styles.modeTabActive : ''}`}
-              onClick={() => { setMode('practice'); setUploadDone(false) }}>练题</button>
+              onClick={() => { setMode('practice'); setUploadedItem(null) }}>练题</button>
             <button className={`${styles.modeTab} ${mode === 'upload' ? styles.modeTabActive : ''}`}
               onClick={() => setMode('upload')}>上传</button>
           </div>
@@ -133,24 +176,46 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
             {!loadingQ && question && phase === 'question' && (
               <>
                 <p className={styles.stem}>{question.stem}</p>
-                {question.options && <pre className={styles.options}>{question.options}</pre>}
+                {!openEnded && question.options && <pre className={styles.options}>{formatOptions(question.options)}</pre>}
                 <div className={styles.inputGroup}>
-                  <input className={styles.input} type="text" value={userAnswer}
-                    onChange={e => { setUserAnswer(e.target.value); setError('') }}
-                    onKeyDown={e => e.key === 'Enter' && handleSubmitAnswer()}
-                    placeholder="输入答案（如 A）" autoFocus />
+                  {openEnded ? (
+                    <textarea
+                      className={styles.textarea}
+                      value={userAnswer}
+                      onChange={e => { setUserAnswer(e.target.value); setError('') }}
+                      placeholder="写下你的理解..."
+                      rows={3}
+                      autoFocus
+                    />
+                  ) : (
+                    <input className={styles.input} type="text" value={userAnswer}
+                      onChange={e => { setUserAnswer(e.target.value); setError('') }}
+                      onKeyDown={e => e.key === 'Enter' && handleSubmitAnswer()}
+                      placeholder="输入答案（如 A）" autoFocus />
+                  )}
                   {error && <p className={styles.error}>{error}</p>}
                   <button className={styles.btn} onClick={handleSubmitAnswer}>确认</button>
                 </div>
               </>
             )}
+            {phase === 'judging' && (
+              <p className={styles.loading}>AI 判断中...</p>
+            )}
             {phase === 'result' && question && (
               <>
                 <p className={styles.stem}>{question.stem}</p>
-                {question.options && <pre className={styles.options}>{question.options}</pre>}
+                {!openEnded && question.options && <pre className={styles.options}>{formatOptions(question.options)}</pre>}
                 <p className={isCorrect ? styles.correct : styles.wrong}>
-                  {isCorrect ? '回答正确！' : `你答了 ${userAnswer}，正确答案是 ${question.answer}`}
+                  {openEnded
+                    ? aiFeedback
+                    : isCorrect ? '回答正确！' : `你答了 ${userAnswer}，正确答案是 ${question.answer}`}
                 </p>
+                {openEnded && (
+                  <div className={styles.referenceBox}>
+                    <p className={styles.referenceLabel}>参考答案</p>
+                    <p className={styles.referenceText}>{question.answer}</p>
+                  </div>
+                )}
                 <p className={styles.explanation}>{question.explanation}</p>
                 <button className={styles.btn} onClick={fetchQuestion}>下一题</button>
               </>
@@ -160,10 +225,14 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props)
 
         {mode === 'upload' && (
           <>
-            {uploadDone ? (
+            {uploadedItem ? (
               <>
-                <p className={styles.uploadSuccess}>题目已上传成功！</p>
-                <button className={styles.btn} onClick={() => setUploadDone(false)}>继续上传</button>
+                <p className={styles.uploadSuccess}>✓ 已录入</p>
+                <p className={styles.stem}>{uploadedItem.stem}</p>
+                {uploadedItem.options && <pre className={styles.options}>{formatOptions(uploadedItem.options)}</pre>}
+                <p className={styles.uploadAnswer}>答案：{uploadedItem.answer}</p>
+                <p className={styles.explanation}>{uploadedItem.explanation}</p>
+                <button className={styles.btn} onClick={() => setUploadedItem(null)}>继续上传</button>
               </>
             ) : (
               <>

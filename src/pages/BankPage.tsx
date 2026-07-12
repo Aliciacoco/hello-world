@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import styles from './BankPage.module.css'
 
-type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'calc'
+function formatOptions(options: string): string {
+  return options
+    .replace(/\s*([A-D][\.\、])/g, '\n$1')
+    .trimStart()
+}
+
+type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'changshi' | 'calc'
 
 interface Review {
   date: number
@@ -141,6 +147,14 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
   const [form, setForm] = useState({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation })
   const [saving, setSaving] = useState(false)
 
+  const handleDeleteReview = async (index: number) => {
+    const res = await fetch(`/api/bank/${bankType}/${item.id}/reviews/${index}`, { method: 'DELETE' })
+    if (res.ok) {
+      const updated = await res.json()
+      onUpdate(updated)
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -194,10 +208,10 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
           ) : (
             <>
               <p className={styles.stem}>{item.stem}</p>
-              {item.options && <pre className={styles.options}>{item.options}</pre>}
+              {item.options && <pre className={styles.options}>{formatOptions(item.options)}</pre>}
               <p className={styles.answer}><strong>答案：</strong>{item.answer}</p>
               <p className={styles.explanation}>{item.explanation}</p>
-              {item.reviews && item.reviews.length > 0 && <ReviewList reviews={item.reviews} />}
+              {item.reviews && item.reviews.length > 0 && <ReviewList reviews={item.reviews} onDeleteReview={handleDeleteReview} />}
               <div className={styles.actions}>
                 <button className={styles.editBtn} onClick={() => { setForm({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation }); setEditing(true) }}>编辑</button>
                 <button className={styles.deleteBtn} onClick={handleDelete}>删除</button>
@@ -248,6 +262,7 @@ const TAB_CONFIG: { key: BankTab; label: string; apiPath: string }[] = [
   { key: 'math', label: '数量关系', apiPath: '/api/bank/math' },
   { key: 'judgement', label: '判断推理', apiPath: '/api/bank/judgement' },
   { key: 'analysis', label: '资料分析', apiPath: '/api/bank/analysis' },
+  { key: 'changshi', label: '常识', apiPath: '/api/bank/changshi' },
   { key: 'calc', label: '速算记录', apiPath: '/api/wrong-answers/speed' },
 ]
 

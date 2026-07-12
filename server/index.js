@@ -195,6 +195,9 @@ function callQwenVL(prompt, base64Image) {
 const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格按JSON格式输出，不要有多余文字：
 {"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项）","answer":"正确答案，如A","explanation":"解析内容"}`
 
+const CHANGSHI_EXTRACT_PROMPT = `请从这道常识题中提取信息，并丰富解析内容，严格按JSON格式输出，不要有多余文字：
+{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项）","answer":"正确答案，如A","explanation":"解析要求：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。"}`
+
 app.post('/api/exam/extract', async (req, res) => {
   const { text, image } = req.body
   if (!text && !image) return res.status(400).json({ error: '请提供文字或图片' })
@@ -216,6 +219,7 @@ const MATH_BANK_FILE = path.join(DATA_DIR, 'question_bank.json')
 const IDIOM_BANK_FILE = path.join(DATA_DIR, 'idiom_bank.json')
 const JUDGEMENT_BANK_FILE = path.join(DATA_DIR, 'judgement_bank.json')
 const ANALYSIS_BANK_FILE = path.join(DATA_DIR, 'analysis_bank.json')
+const CHANGSHI_BANK_FILE = path.join(DATA_DIR, 'changshi_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
 
 function readPoints() {
@@ -331,7 +335,7 @@ app.get('/api/bank/math', (req, res) => {
 })
 
 // ——— 通用题库工厂（判断推理 / 资料分析）———
-function makeExamBankRoutes(prefix, file) {
+function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, judgeConfig = null) {
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
     const bank = readBank(file)
     if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
@@ -348,16 +352,18 @@ function makeExamBankRoutes(prefix, file) {
     try {
       let content
       if (image) {
-        content = await callQwenVL(EXAM_EXTRACT_PROMPT, image)
+        content = await callQwenVL(extractPrompt, image)
       } else {
-        content = await callQwen([{ role: 'user', content: `${EXAM_EXTRACT_PROMPT}\n\n题目内容：\n${text}` }])
+        content = await callQwen([{ role: 'user', content: `${extractPrompt}\n\n题目内容：\n${text}` }])
       }
       const extracted = JSON.parse(content.trim().replace(/```json|```/g, ''))
       const bank = readBank(file)
       const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
       bank.push(newItem)
       writeBank(file, bank)
-      earnPoints(1, `录入${prefix === 'judgement' ? '判断推理' : '资料分析'}题`)
+      const subjectName = { judgement: '判断推理', analysis: '资料分析', changshi: '常识' }[prefix] || prefix
+      const uploadPoints = prefix === 'changshi' ? 0.5 : 1
+      if (!req.body.silent) earnPoints(uploadPoints, `录入${subjectName}题`)
       res.json(newItem)
     } catch (e) {
       res.status(500).json({ error: e.message })
@@ -372,6 +378,19 @@ function makeExamBankRoutes(prefix, file) {
     item.reviews.push({ date: Date.now(), userAnswer: req.body.userAnswer })
     writeBank(file, bank)
     res.json({ ok: true })
+  })
+
+  app.delete(`/api/bank/${prefix}/:id/reviews/:index`, (req, res) => {
+    const bank = readBank(file)
+    const idx = bank.findIndex(q => q.id === req.params.id)
+    if (idx === -1) return res.status(404).json({ error: '题目不存在' })
+    const ri = parseInt(req.params.index)
+    if (!Array.isArray(bank[idx].reviews) || ri < 0 || ri >= bank[idx].reviews.length) {
+      return res.status(404).json({ error: '记录不存在' })
+    }
+    bank[idx].reviews.splice(ri, 1)
+    writeBank(file, bank)
+    res.json(bank[idx])
   })
 
   app.put(`/api/bank/${prefix}/:id`, (req, res) => {
@@ -394,10 +413,35 @@ function makeExamBankRoutes(prefix, file) {
     writeBank(file, filtered)
     res.json({ ok: true })
   })
+
+  if (judgeConfig) {
+    app.post(`/api/bank/${prefix}/judge`, async (req, res) => {
+      const { stem, userAnswer, correctAnswer, explanation } = req.body
+      if (!stem || !userAnswer) return res.status(400).json({ error: '缺少参数' })
+      try {
+        const content = await callQwen([{
+          role: 'user',
+          content: `题目：${stem}
+参考答案：${correctAnswer}
+学生回答：${userAnswer}
+背景解析：${explanation || ''}
+
+你是一个口语化的老师，判断学生回答是否正确（语义相近即算对）。先说"答对了"或"答错了/答偏了"，再用一两句话指出关键点或纠错，如果答对了顺带补充一个记忆要点。整体80字以内，不要用列表，像聊天一样说话。
+格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
+        }])
+        const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
+        if (json.correct) earnPoints(judgeConfig.answerPoints, `${judgeConfig.subjectName}答对`)
+        res.json(json)
+      } catch (e) {
+        res.status(500).json({ error: e.message })
+      }
+    })
+  }
 }
 
 makeExamBankRoutes('judgement', JUDGEMENT_BANK_FILE)
 makeExamBankRoutes('analysis', ANALYSIS_BANK_FILE)
+makeExamBankRoutes('changshi', CHANGSHI_BANK_FILE, CHANGSHI_EXTRACT_PROMPT, { answerPoints: 0.5, subjectName: '常识' })
 
 // 编辑/删除接口
 app.put('/api/bank/math/:id', (req, res) => {

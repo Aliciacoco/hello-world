@@ -4,11 +4,10 @@
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(247, 244, 239, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(60, 60, 67, 0.18);
-  overflow: hidden;
+  border-bottom: 1px solid rgba(180, 160, 120, 0.22);
 }
 
 .nav {
@@ -16,15 +15,16 @@
   align-items: center;
   justify-content: space-between;
   height: 52px;
-  overflow: hidden;
 }
 
 .logo {
-  font-size: 1rem;
+  font-family: 'Lora', serif;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #1c1c1e;
+  font-style: italic;
+  color: var(--text);
   text-decoration: none;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
 }
 
 .links {
@@ -35,7 +35,7 @@
 
 .links a {
   display: block;
-  color: #6c6c70;
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.88rem;
   font-weight: 500;
@@ -45,10 +45,10 @@
 }
 
 .links a:hover {
-  color: #1c1c1e;
+  color: var(--text);
 }
 
 .active {
-  color: #0ABAB5 !important;
+  color: var(--accent) !important;
   font-weight: 600 !important;
 }

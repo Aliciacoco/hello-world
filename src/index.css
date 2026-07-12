@@ -5,36 +5,41 @@
 }
 
 :root {
-  --bg: #f2f2f7;
-  --bg-card: #ffffff;
-  --text: #1c1c1e;
-  --text-secondary: #6c6c70;
-  --text-tertiary: #8e8e93;
-  --accent: #0ABAB5;
-  --green: #34c759;
-  --red: #ff3b30;
-  --separator: rgba(60, 60, 67, 0.18);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --bg:            #f7f4ef;
+  --bg-card:       #fffef9;
+  --bg-inset:      #f0ede6;
+  --text:          #2c2422;
+  --text-secondary:#7a6e68;
+  --text-tertiary: #a89e98;
+  --accent:        #1e3a5f;
+  --accent-light:  #eef1f6;
+  --green:         #34c759;
+  --red:           #c0392b;
+  --separator:     rgba(180, 160, 120, 0.2);
+  --shadow:        0 2px 10px rgba(120, 90, 60, 0.08), 0 1px 3px rgba(120, 90, 60, 0.04);
+  --shadow-hover:  0 6px 20px rgba(120, 90, 60, 0.13), 0 2px 6px rgba(120, 90, 60, 0.07);
+  --border:        rgba(180, 160, 120, 0.18);
 }
 
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
-  background: var(--bg);
+  font-family: 'Lora', 'LXGW WenKai', 'Georgia', serif;
+  background-color: var(--bg);
+  /* 极淡点阵纸感 */
+  background-image: radial-gradient(circle, rgba(120, 90, 60, 0.045) 1px, transparent 1px);
+  background-size: 22px 22px;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  min-width: 0;
 }
 
 #root {
-  overflow-x: hidden;
   min-width: 0;
 }
 

@@ -9,17 +9,17 @@
 }
 
 .cardLabel {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
 }
 
 /* iOS 分段控件 */
 .tabs {
   display: flex;
-  background: rgba(120, 120, 128, 0.12);
+  background: rgba(180, 160, 120, 0.12);
   border-radius: 8px;
   padding: 2px;
   gap: 2px;
@@ -30,45 +30,52 @@
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #6c6c70;
+  color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
 }
 
-.tab:hover {
-  color: #1c1c1e;
-}
+.tab:hover { color: var(--text); }
 
 .tabActive {
-  background: #ffffff;
-  color: #1c1c1e;
+  background: var(--bg-card);
+  color: var(--text);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(120, 90, 60, 0.12);
 }
 
+/* 成语大字 */
 .word {
-  font-size: 2rem;
+  font-size: 2.1rem;
   font-weight: 700;
-  color: #1c1c1e;
-  letter-spacing: 0.06em;
+  color: var(--text);
+  letter-spacing: 0.08em;
   text-align: center;
+  animation: slideInRight 0.22s ease-out;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 .hint {
-  color: #8e8e93;
+  color: var(--text-tertiary);
   font-size: 0.88rem;
   text-align: center;
-  margin: 2px 0 8px;
+  margin: 2px 0 4px;
+  font-style: italic;
 }
 
 .loading {
-  color: #8e8e93;
+  color: var(--text-tertiary);
   font-size: 0.9rem;
   text-align: center;
   margin: 0;
+  font-style: italic;
 }
 
 /* 上传区域 */
@@ -82,44 +89,43 @@
 .uploadBtn {
   padding: 7px 14px;
   background: transparent;
-  border: 1.5px solid rgba(60, 60, 67, 0.25);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #6c6c70;
+  color: var(--text-secondary);
   font-size: 0.85rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
 }
 
 .uploadBtn:hover {
-  border-color: #0ABAB5;
-  color: #0ABAB5;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .imageHint {
   font-size: 0.82rem;
-  color: #34c759;
+  color: var(--green);
 }
 
 .cancelBtn {
   padding: 7px 14px;
   background: transparent;
-  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #8e8e93;
+  color: var(--text-secondary);
   font-size: 0.85rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
-  font-family: inherit;
   transition: all 0.15s;
 }
 
 .cancelBtn:hover {
-  border-color: #8e8e93;
-  color: #1c1c1e;
+  border-color: var(--text-secondary);
+  color: var(--text);
 }
 
-/* 下方未使用的旧类保留为空，防止 TSX 报 undefined */
 .uploadToggle {}
 .uploadArea {}
 .emptyHint {}

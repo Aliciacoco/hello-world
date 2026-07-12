@@ -15,15 +15,16 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1c1c1e;
+  font-style: italic;
+  color: var(--text);
   margin: 0;
-  letter-spacing: -0.02em;
 }
 
 .empty {
   text-align: center;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   font-size: 0.93rem;
+  font-style: italic;
   margin-top: 80px;
 }
 
@@ -31,43 +32,39 @@
   padding: 6px 16px;
   font-size: 0.85rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   background: transparent;
-  color: #ff3b30;
-  border: 1.5px solid rgba(255, 59, 48, 0.3);
+  color: var(--red);
+  border: 1.5px solid rgba(192, 57, 43, 0.25);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
 }
 
-.clearBtn:hover {
-  background: #fff0f0;
-}
+.clearBtn:hover { background: rgba(192, 57, 43, 0.05); }
 
 .cardActions {
   display: flex;
   justify-content: flex-end;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  border-top: 1px solid var(--separator);
 }
 
 .deleteCardBtn {
   padding: 4px 12px;
   font-size: 0.78rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   background: transparent;
-  color: #ff3b30;
-  border: 1.5px solid rgba(255, 59, 48, 0.3);
+  color: var(--red);
+  border: 1.5px solid rgba(192, 57, 43, 0.25);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
 }
 
-.deleteCardBtn:hover {
-  background: #fff0f0;
-}
+.deleteCardBtn:hover { background: rgba(192, 57, 43, 0.05); }
 
 .list {
   display: flex;
@@ -76,56 +73,56 @@
 }
 
 .card {
-  background: #ffffff;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow);
   padding: 18px 18px 14px;
+  transition: box-shadow 0.15s;
 }
+
+.card:hover { box-shadow: var(--shadow-hover); }
 
 .tag {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 20px;
-  background: #e0f9f8;
-  color: #0ABAB5;
+  background: var(--accent-light);
+  color: var(--accent);
   margin-bottom: 10px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 .question {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #1c1c1e;
+  color: var(--text);
   letter-spacing: -0.01em;
 }
 
-.wrong {
-  color: #ff3b30;
-}
-
-.correct {
-  color: #34c759;
-}
+.wrong  { color: var(--red); }
+.correct { color: var(--green); }
 
 .explanation {
-  color: #3c3c43;
+  color: var(--text-secondary);
   margin: 6px 0;
   font-size: 0.9rem;
-  line-height: 1.65;
+  line-height: 1.75;
 }
 
 .reason {
-  color: #6c6c70;
+  color: var(--text-tertiary);
   margin: 6px 0;
   font-size: 0.87rem;
-  line-height: 1.5;
+  font-style: italic;
+  line-height: 1.6;
 }
 
 .date {
-  color: #c7c7cc;
+  color: var(--text-tertiary);
   font-size: 0.78rem;
   margin: 6px 0 0;
 }

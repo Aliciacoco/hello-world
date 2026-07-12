@@ -14,15 +14,16 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1c1c1e;
+  font-style: italic;
+  color: var(--text);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
-/* iOS 分段控件 */
+/* 标签页 */
 .tabs {
   display: flex;
-  background: rgba(120, 120, 128, 0.12);
+  background: rgba(180, 160, 120, 0.12);
   border-radius: 9px;
   padding: 2px;
   gap: 2px;
@@ -31,43 +32,39 @@
   scrollbar-width: none;
 }
 
-.tabs::-webkit-scrollbar {
-  display: none;
-}
+.tabs::-webkit-scrollbar { display: none; }
 
 .tab {
   padding: 6px 12px;
   border: none;
   border-radius: 7px;
   background: transparent;
-  color: #6c6c70;
+  color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
-  font-family: inherit;
 }
 
-.tab:hover {
-  color: #1c1c1e;
-}
+.tab:hover { color: var(--text); }
 
 .tabActive {
-  background: #ffffff;
-  color: #1c1c1e;
+  background: var(--bg-card);
+  color: var(--text);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(120, 90, 60, 0.12);
 }
 
 .tabCount {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #0ABAB5;
-  color: #fff;
-  font-size: 0.65rem;
+  background: var(--accent);
+  color: #f7f4ef;
+  font-size: 0.62rem;
   font-weight: 700;
   min-width: 16px;
   height: 16px;
@@ -79,9 +76,10 @@
 
 .empty {
   text-align: center;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   margin-top: 60px;
   font-size: 0.93rem;
+  font-style: italic;
 }
 
 .list {
@@ -92,11 +90,15 @@
 
 /* 每条题目 */
 .item {
-  background: #ffffff;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s;
 }
+
+.item:hover { box-shadow: var(--shadow-hover); }
 
 .itemHeader {
   display: flex;
@@ -108,12 +110,10 @@
   transition: background 0.15s;
 }
 
-.itemHeader:hover {
-  background: #f9f9f9;
-}
+.itemHeader:hover { background: rgba(180, 160, 120, 0.06); }
 
 .itemTitle {
-  color: #1c1c1e;
+  color: var(--text);
   font-size: 0.93rem;
   font-weight: 500;
   flex: 1;
@@ -129,73 +129,76 @@
 }
 
 .reviewBadge {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  background: #fff0f0;
-  color: #ff3b30;
+  background: rgba(192, 57, 43, 0.08);
+  color: var(--red);
   padding: 2px 8px;
   border-radius: 20px;
 }
 
 .chevron {
-  color: #c7c7cc;
+  color: var(--text-tertiary);
   font-size: 0.7rem;
 }
 
 .itemBody {
   padding: 0 16px 14px;
-  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  border-top: 1px solid var(--separator);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .stem {
-  color: #3c3c43;
+  color: var(--text-secondary);
   font-size: 0.88rem;
-  line-height: 1.7;
+  line-height: 1.8;
   margin: 10px 0 0;
   white-space: pre-wrap;
 }
 
 .options {
-  color: #6c6c70;
+  color: var(--text-tertiary);
   font-size: 0.86rem;
-  line-height: 1.9;
+  line-height: 2;
   margin: 0;
-  font-family: inherit;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   white-space: pre-wrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .answer {
-  color: #0ABAB5;
+  color: var(--accent);
   font-size: 0.88rem;
   font-weight: 500;
   margin: 4px 0 0;
 }
 
 .explanation {
-  color: #8e8e93;
-  font-size: 0.85rem;
-  line-height: 1.6;
+  color: var(--text-tertiary);
+  font-size: 0.84rem;
+  line-height: 1.7;
   margin: 0;
   white-space: pre-wrap;
+  font-style: italic;
 }
 
 /* 答错记录 */
 .reviews {
-  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  border-top: 1px solid var(--separator);
   padding-top: 8px;
   margin-top: 2px;
 }
 
 .reviewTitle {
-  color: #c7c7cc;
-  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
   margin: 0 0 6px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
 }
 
 .reviewRow {
@@ -206,38 +209,39 @@
 }
 
 .reviewDate {
-  color: #c7c7cc;
+  color: var(--text-tertiary);
   font-size: 0.76rem;
 }
 
 .reviewAnswer {
-  color: #ff3b30;
+  color: var(--red);
   font-size: 0.82rem;
 }
 
 .deleteReviewBtn {
   margin-left: auto;
   padding: 1px 8px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   background: none;
-  color: #c7c7cc;
-  border: 1px solid rgba(60, 60, 67, 0.2);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
-  font-family: inherit;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   transition: all 0.15s;
 }
 
 .deleteReviewBtn:hover {
-  color: #ff3b30;
-  border-color: #ff3b30;
+  color: var(--red);
+  border-color: rgba(192, 57, 43, 0.3);
 }
 
 .reviewFeedback {
-  color: #8e8e93;
+  color: var(--text-tertiary);
   font-size: 0.8rem;
-  margin: 2px 0 4px 0;
-  line-height: 1.5;
+  font-style: italic;
+  margin: 2px 0 4px;
+  line-height: 1.6;
   width: 100%;
 }
 
@@ -247,43 +251,41 @@
   gap: 8px;
   margin-top: 6px;
   padding-top: 10px;
-  border-top: 1px solid rgba(60, 60, 67, 0.1);
+  border-top: 1px solid var(--separator);
 }
 
 .editBtn {
   padding: 5px 14px;
   background: transparent;
-  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border: 1.5px solid var(--border);
   border-radius: 7px;
-  color: #6c6c70;
+  color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
 }
 
 .editBtn:hover {
-  border-color: #0ABAB5;
-  color: #0ABAB5;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .deleteBtn {
   padding: 5px 14px;
   background: transparent;
-  border: 1.5px solid rgba(255, 59, 48, 0.3);
+  border: 1.5px solid rgba(192, 57, 43, 0.25);
   border-radius: 7px;
-  color: #ff3b30;
+  color: var(--red);
   font-size: 0.8rem;
   font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: all 0.15s;
-  font-family: inherit;
 }
 
-.deleteBtn:hover {
-  background: #fff0f0;
-}
+.deleteBtn:hover { background: rgba(192, 57, 43, 0.06); }
 
 /* 编辑表单 */
 .editForm {
@@ -294,102 +296,78 @@
 }
 
 .editLabel {
-  color: #8e8e93;
-  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .editField {
-  background: #f2f2f7;
-  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  background: var(--bg-inset);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #1c1c1e;
+  color: var(--text);
   font-size: 0.9rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   padding: 8px 11px;
-  font-family: inherit;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
 }
 
 .editField:focus {
-  border-color: #0ABAB5;
-  background: #ffffff;
+  border-color: var(--accent);
+  background: var(--bg-card);
 }
 
 .editArea {
-  background: #f2f2f7;
-  border: 1.5px solid rgba(60, 60, 67, 0.18);
+  background: var(--bg-inset);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #1c1c1e;
+  color: var(--text);
   font-size: 0.87rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   padding: 8px 11px;
-  font-family: inherit;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.7;
   outline: none;
   transition: border-color 0.15s, background 0.15s;
 }
 
 .editArea:focus {
-  border-color: #0ABAB5;
-  background: #ffffff;
+  border-color: var(--accent);
+  background: var(--bg-card);
 }
 
 .saveBtn {
   padding: 6px 16px;
-  background: #0ABAB5;
+  background: var(--accent);
   border: none;
   border-radius: 8px;
-  color: #ffffff;
+  color: #f7f4ef;
   font-size: 0.82rem;
   font-weight: 600;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: opacity 0.15s;
-  font-family: inherit;
 }
 
-.saveBtn:hover {
-  opacity: 0.82;
-}
-
-.saveBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.saveBtn:hover    { opacity: 0.85; }
+.saveBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .cancelBtn {
   padding: 6px 13px;
   background: transparent;
-  border: 1.5px solid rgba(60, 60, 67, 0.2);
+  border: 1.5px solid var(--border);
   border-radius: 8px;
-  color: #8e8e93;
+  color: var(--text-tertiary);
   font-size: 0.82rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
-  font-family: inherit;
   transition: all 0.15s;
 }
 
 .cancelBtn:hover {
-  color: #1c1c1e;
-  border-color: rgba(60, 60, 67, 0.35);
-}
-
-/* 速算记录 */
-.speedItem {
-  background: #ffffff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-}
-
-.speedQuestion {
-  color: #1c1c1e;
-  font-size: 0.93rem;
-  font-weight: 500;
-}
-
-.speedMeta {
-  color: #8e8e93;
-  font-size: 0.83rem;
+  color: var(--text);
+  border-color: rgba(180, 160, 120, 0.4);
 }

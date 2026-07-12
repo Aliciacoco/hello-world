@@ -13,6 +13,7 @@ export default function Practice() {
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
   const [aiExplanation, setAiExplanation] = useState('')
+  const [cardAnim, setCardAnim] = useState<'correct' | 'wrong' | ''>('')
 
   const nextQuestion = useCallback(() => {
     setQuestion(generateQuestion())
@@ -31,9 +32,11 @@ export default function Practice() {
     }
     const correct = calculateAnswer(question)
     if (userAnswer === correct) {
-      earnPoints(0.1, '排列组合答对')
-      nextQuestion()
+      setCardAnim('correct')
+      setTimeout(() => { setCardAnim(''); earnPoints(0.1, '排列组合答对'); nextQuestion() }, 360)
     } else {
+      setCardAnim('wrong')
+      setTimeout(() => setCardAnim(''), 400)
       setError('')
       setPhase('wrong-reason')
     }
@@ -75,7 +78,7 @@ export default function Practice() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      <div className={`${styles.card} ${cardAnim === 'correct' ? styles.correctAnim : ''} ${cardAnim === 'wrong' ? styles.wrongAnim : ''}`}>
         <div className={styles.cardHeader}>
           <span className={styles.cardLabel}>排列组合</span>
         </div>

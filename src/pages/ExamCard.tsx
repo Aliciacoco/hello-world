@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { earnPoints } from '../utils/points'
 import styles from './ExamCard.module.css'
 
 type Mode = 'practice' | 'upload'
@@ -12,7 +13,13 @@ interface BankQuestion {
   explanation: string
 }
 
-export default function ExamCard() {
+interface Props {
+  subject: string
+  bankType: string
+  pointsPerCorrect: number
+}
+
+export default function ExamCard({ subject, bankType, pointsPerCorrect }: Props) {
   const [mode, setMode] = useState<Mode>('practice')
 
   const [question, setQuestion] = useState<BankQuestion | null>(null)
@@ -38,7 +45,7 @@ export default function ExamCard() {
     setIsCorrect(null)
     setPhase('question')
     try {
-      const res = await fetch('/api/bank/math/random')
+      const res = await fetch(`/api/bank/${bankType}/random`)
       if (!res.ok) throw new Error()
       setQuestion(await res.json())
     } catch {
@@ -46,7 +53,7 @@ export default function ExamCard() {
     } finally {
       setLoadingQ(false)
     }
-  }, [])
+  }, [bankType])
 
   useEffect(() => { fetchQuestion() }, [fetchQuestion])
 
@@ -57,17 +64,13 @@ export default function ExamCard() {
     const correct = userAnswer.trim().toUpperCase() === question.answer.trim().toUpperCase()
     setIsCorrect(correct)
     if (!correct) {
-      fetch(`/api/bank/math/${question.id}/review`, {
+      fetch(`/api/bank/${bankType}/${question.id}/review`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userAnswer: userAnswer.trim(), date: Date.now() }),
       }).catch(() => {})
     } else {
-      fetch('/api/points/earn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 1, reason: '数量关系答对' }),
-      }).catch(() => {})
+      earnPoints(pointsPerCorrect, `${subject}答对`)
     }
     setPhase('result')
   }
@@ -89,7 +92,7 @@ export default function ExamCard() {
     setUploadError('')
     setUploading(true)
     try {
-      const res = await fetch('/api/bank/math', {
+      const res = await fetch(`/api/bank/${bankType}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: uploadText.trim(), image: imageBase64 }),
@@ -111,7 +114,7 @@ export default function ExamCard() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <span className={styles.label}>数量关系</span>
+          <span className={styles.label}>{subject}</span>
           <div className={styles.modeTabs}>
             <button className={`${styles.modeTab} ${mode === 'practice' ? styles.modeTabActive : ''}`}
               onClick={() => { setMode('practice'); setUploadDone(false) }}>练题</button>

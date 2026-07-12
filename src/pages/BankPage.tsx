@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import styles from './BankPage.module.css'
 
-type BankTab = 'idiom' | 'math' | 'calc'
+type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'calc'
 
 interface Review {
   date: number
@@ -130,8 +130,9 @@ function IdiomBankItem({ item, onUpdate, onDelete }: {
   )
 }
 
-function MathBankItem({ item, onUpdate, onDelete }: {
+function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
   item: BankItem
+  bankType: string
   onUpdate: (updated: BankItem) => void
   onDelete: (id: string) => void
 }) {
@@ -143,7 +144,7 @@ function MathBankItem({ item, onUpdate, onDelete }: {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const res = await fetch(`/api/bank/math/${item.id}`, {
+      const res = await fetch(`/api/bank/${bankType}/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -160,7 +161,7 @@ function MathBankItem({ item, onUpdate, onDelete }: {
 
   const handleDelete = async () => {
     if (!confirm('确定删除这道题？')) return
-    const res = await fetch(`/api/bank/math/${item.id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/bank/${bankType}/${item.id}`, { method: 'DELETE' })
     if (res.ok) onDelete(item.id)
   }
 
@@ -242,25 +243,49 @@ function CalcItem({ item, onDelete }: { item: CalcRecord; onDelete: (id: string)
   )
 }
 
+const TAB_CONFIG: { key: BankTab; label: string; apiPath: string }[] = [
+  { key: 'idiom', label: '成语辨析', apiPath: '/api/bank/idiom' },
+  { key: 'math', label: '数量关系', apiPath: '/api/bank/math' },
+  { key: 'judgement', label: '判断推理', apiPath: '/api/bank/judgement' },
+  { key: 'analysis', label: '资料分析', apiPath: '/api/bank/analysis' },
+  { key: 'calc', label: '速算记录', apiPath: '/api/wrong-answers/speed' },
+]
+
 export default function BankPage() {
   const [tab, setTab] = useState<BankTab>('idiom')
   const [list, setList] = useState<BankItem[]>([])
   const [calcList, setCalcList] = useState<CalcRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [counts, setCounts] = useState<Partial<Record<BankTab, number>>>({})
+
+  // Load counts for all tabs on mount
+  useEffect(() => {
+    Promise.all(
+      TAB_CONFIG.map(t => fetch(t.apiPath).then(r => r.json()).catch(() => []))
+    ).then(results => {
+      const newCounts: Partial<Record<BankTab, number>> = {}
+      TAB_CONFIG.forEach((t, i) => {
+        newCounts[t.key] = Array.isArray(results[i]) ? results[i].length : 0
+      })
+      setCounts(newCounts)
+    })
+  }, [])
 
   useEffect(() => {
     setLoading(true)
-    if (tab === 'calc') {
-      fetch('/api/wrong-answers/speed')
-        .then(r => r.json())
-        .then(data => { setCalcList(data); setLoading(false) })
-        .catch(() => setLoading(false))
-    } else {
-      fetch(`/api/bank/${tab}`)
-        .then(r => r.json())
-        .then(data => { setList(data); setLoading(false) })
-        .catch(() => setLoading(false))
-    }
+    const config = TAB_CONFIG.find(t => t.key === tab)!
+    fetch(config.apiPath)
+      .then(r => r.json())
+      .then(data => {
+        if (tab === 'calc') {
+          setCalcList(data)
+        } else {
+          setList(data)
+          setCounts(c => ({ ...c, [tab]: data.length }))
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [tab])
 
   const handleUpdate = (updated: BankItem) => {
@@ -268,11 +293,19 @@ export default function BankPage() {
   }
 
   const handleDelete = (id: string) => {
-    setList(l => l.filter(item => item.id !== id))
+    setList(l => {
+      const next = l.filter(item => item.id !== id)
+      setCounts(c => ({ ...c, [tab]: next.length }))
+      return next
+    })
   }
 
   const handleCalcDelete = (id: string) => {
-    setCalcList(l => l.filter(item => item.id !== id))
+    setCalcList(l => {
+      const next = l.filter(item => item.id !== id)
+      setCounts(c => ({ ...c, calc: next.length }))
+      return next
+    })
   }
 
   return (
@@ -280,9 +313,18 @@ export default function BankPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>题库</h1>
         <div className={styles.tabs}>
-          <button className={`${styles.tab} ${tab === 'idiom' ? styles.tabActive : ''}`} onClick={() => setTab('idiom')}>成语辨析</button>
-          <button className={`${styles.tab} ${tab === 'math' ? styles.tabActive : ''}`} onClick={() => setTab('math')}>数量关系</button>
-          <button className={`${styles.tab} ${tab === 'calc' ? styles.tabActive : ''}`} onClick={() => setTab('calc')}>速算记录</button>
+          {TAB_CONFIG.map(t => (
+            <button
+              key={t.key}
+              className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+              {counts[t.key] != null && counts[t.key]! > 0 && (
+                <span className={styles.tabCount}>{counts[t.key]}</span>
+              )}
+            </button>
+          ))}
         </div>
       </div>
       {loading ? (
@@ -298,7 +340,7 @@ export default function BankPage() {
           {list.map(item =>
             tab === 'idiom'
               ? <IdiomBankItem key={item.id} item={item} onUpdate={handleUpdate} onDelete={handleDelete} />
-              : <MathBankItem key={item.id} item={item} onUpdate={handleUpdate} onDelete={handleDelete} />
+              : <ExamBankItem key={item.id} item={item} bankType={tab} onUpdate={handleUpdate} onDelete={handleDelete} />
           )}
         </div>
       )}

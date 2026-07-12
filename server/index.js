@@ -214,6 +214,8 @@ app.post('/api/exam/extract', async (req, res) => {
 
 const MATH_BANK_FILE = path.join(DATA_DIR, 'question_bank.json')
 const IDIOM_BANK_FILE = path.join(DATA_DIR, 'idiom_bank.json')
+const JUDGEMENT_BANK_FILE = path.join(DATA_DIR, 'judgement_bank.json')
+const ANALYSIS_BANK_FILE = path.join(DATA_DIR, 'analysis_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
 
 function readPoints() {
@@ -327,6 +329,75 @@ app.get('/api/bank/idiom', (req, res) => {
 app.get('/api/bank/math', (req, res) => {
   res.json(readBank(MATH_BANK_FILE))
 })
+
+// ——— 通用题库工厂（判断推理 / 资料分析）———
+function makeExamBankRoutes(prefix, file) {
+  app.get(`/api/bank/${prefix}/random`, (req, res) => {
+    const bank = readBank(file)
+    if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
+    res.json(bank[Math.floor(Math.random() * bank.length)])
+  })
+
+  app.get(`/api/bank/${prefix}`, (req, res) => {
+    res.json(readBank(file))
+  })
+
+  app.post(`/api/bank/${prefix}`, async (req, res) => {
+    const { text, image } = req.body
+    if (!text && !image) return res.status(400).json({ error: '请提供文字或图片' })
+    try {
+      let content
+      if (image) {
+        content = await callQwenVL(EXAM_EXTRACT_PROMPT, image)
+      } else {
+        content = await callQwen([{ role: 'user', content: `${EXAM_EXTRACT_PROMPT}\n\n题目内容：\n${text}` }])
+      }
+      const extracted = JSON.parse(content.trim().replace(/```json|```/g, ''))
+      const bank = readBank(file)
+      const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
+      bank.push(newItem)
+      writeBank(file, bank)
+      earnPoints(1, `录入${prefix === 'judgement' ? '判断推理' : '资料分析'}题`)
+      res.json(newItem)
+    } catch (e) {
+      res.status(500).json({ error: e.message })
+    }
+  })
+
+  app.patch(`/api/bank/${prefix}/:id/review`, (req, res) => {
+    const bank = readBank(file)
+    const item = bank.find(q => q.id === req.params.id)
+    if (!item) return res.status(404).json({ error: '题目不存在' })
+    if (!item.reviews) item.reviews = []
+    item.reviews.push({ date: Date.now(), userAnswer: req.body.userAnswer })
+    writeBank(file, bank)
+    res.json({ ok: true })
+  })
+
+  app.put(`/api/bank/${prefix}/:id`, (req, res) => {
+    const bank = readBank(file)
+    const idx = bank.findIndex(q => q.id === req.params.id)
+    if (idx === -1) return res.status(404).json({ error: '题目不存在' })
+    const { stem, options, answer, explanation } = req.body
+    if (stem != null) bank[idx].stem = stem
+    if (options != null) bank[idx].options = options
+    if (answer != null) bank[idx].answer = answer
+    if (explanation != null) bank[idx].explanation = explanation
+    writeBank(file, bank)
+    res.json(bank[idx])
+  })
+
+  app.delete(`/api/bank/${prefix}/:id`, (req, res) => {
+    const bank = readBank(file)
+    const filtered = bank.filter(q => q.id !== req.params.id)
+    if (filtered.length === bank.length) return res.status(404).json({ error: '题目不存在' })
+    writeBank(file, filtered)
+    res.json({ ok: true })
+  })
+}
+
+makeExamBankRoutes('judgement', JUDGEMENT_BANK_FILE)
+makeExamBankRoutes('analysis', ANALYSIS_BANK_FILE)
 
 // 编辑/删除接口
 app.put('/api/bank/math/:id', (req, res) => {

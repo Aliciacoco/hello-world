@@ -9,7 +9,9 @@ export default function Home() {
       <div className={styles.grid}>
         <PracticeCard />
         <IdiomCard />
-        <ExamCard />
+        <ExamCard subject="数量关系" bankType="math" pointsPerCorrect={1} />
+        <ExamCard subject="判断推理" bankType="judgement" pointsPerCorrect={1} />
+        <ExamCard subject="资料分析" bankType="analysis" pointsPerCorrect={1} />
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { generateQuestion, calculateAnswer, type Question } from '../utils/combinatorics'
 import { saveWrongAnswer } from '../utils/storage'
+import { earnPoints } from '../utils/points'
 import styles from './Practice.module.css'
 
 type Phase = 'question' | 'wrong-reason' | 'loading' | 'explanation'
@@ -30,11 +31,7 @@ export default function Practice() {
     }
     const correct = calculateAnswer(question)
     if (userAnswer === correct) {
-      fetch('/api/points/earn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 0.1, reason: '排列组合答对' }),
-      }).catch(() => {})
+      earnPoints(0.1, '排列组合答对')
       nextQuestion()
     } else {
       setError('')

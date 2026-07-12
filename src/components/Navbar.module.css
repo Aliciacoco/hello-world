@@ -8,6 +8,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(60, 60, 67, 0.18);
+  overflow: hidden;
 }
 
 .nav {
@@ -15,6 +16,7 @@
   align-items: center;
   justify-content: space-between;
   height: 52px;
+  overflow: hidden;
 }
 
 .logo {

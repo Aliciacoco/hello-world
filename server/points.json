@@ -1,6 +1,13 @@
 {
-  "balance": 1.1,
+  "balance": 1.2,
   "history": [
+    {
+      "id": "1783864370627-kyos0ouw20g",
+      "type": "earn",
+      "amount": 0.1,
+      "reason": "排列组合答对",
+      "date": 1783864370627
+    },
     {
       "id": "1783861658071-vghjgp6k4ze",
       "type": "earn",

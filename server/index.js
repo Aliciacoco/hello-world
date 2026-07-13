@@ -137,12 +137,15 @@ app.post('/api/idiom/judge', async (req, res) => {
       content: `成语：${word}
 学生的回答：${answer}
 
-你是一个聊天式的语文老师，用口语化、面对面交流的方式点评这个回答。
-- 先判断对不对（语义相近即可算对）
-- 如果有偏差，直接说"你是不是以为……其实……"，指出最关键的误区
-- 然后用一两句话说清楚这个成语真正的意思和典型用法，顺带提一下容易和哪个词混淆
-- 不要用列表，不要用"近义词：""反义词："这种格式，像聊天一样说话
-- 整体控制在100字左右
+你是一个严格的语文老师，用口语化方式点评这个回答。
+判断标准（必须同时满足才算对）：
+1. 答出了这个成语的核心含义（不能只写笼统大意或近义词替换）
+2. 答出了典型的使用场景或对象（用于什么情境/什么人）
+3. 没有明显的误解或方向错误
+
+只要有一条没达到就判错，不要因为"方向对"或"差不多"就判对。
+
+点评方式：如果答错了，直接说"你是不是以为……其实……"，指出最关键的误区，再用一两句说清楚正确含义和用法；如果答对了，简单肯定并补充一个容易混淆的词。不要用列表，像聊天一样说话，整体100字以内。
 
 格式要求（严格JSON，不要有多余文字）：
 {"correct":true或false,"feedback":"你的点评"}`,
@@ -426,7 +429,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
 学生回答：${userAnswer}
 背景解析：${explanation || ''}
 
-你是一个口语化的老师，判断学生回答是否正确（语义相近即算对）。先说"答对了"或"答错了/答偏了"，再用一两句话指出关键点或纠错，如果答对了顺带补充一个记忆要点。整体80字以内，不要用列表，像聊天一样说话。
+你是一个严格的常识老师。判断标准：学生回答必须与参考答案高度吻合——核心知识点要答到位，方向偏差、答案不完整、只说大概意思都算错。先说"答对了"或"答错了"，再用一两句话点出关键或纠错，答对了顺带补充一个记忆要点。整体80字以内，像聊天一样说话，不用列表。
 格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
         }])
         const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
@@ -545,6 +548,87 @@ app.delete('/api/wrong-answers/:id', (req, res) => {
   const filtered = list.filter(r => r.id !== req.params.id)
   if (filtered.length === list.length) return res.status(404).json({ error: '记录不存在' })
   writeData(filtered)
+  res.json({ ok: true })
+})
+
+// ——— 申论模块 ———
+const SHENLUN_BANK_FILE = path.join(DATA_DIR, 'shenlun_bank.json')
+
+function readShenlun() {
+  try { return JSON.parse(fs.readFileSync(SHENLUN_BANK_FILE, 'utf8')) } catch { return [] }
+}
+function writeShenlun(data) {
+  fs.writeFileSync(SHENLUN_BANK_FILE, JSON.stringify(data, null, 2))
+}
+
+app.post('/api/shenlun/topic', async (req, res) => {
+  try {
+    const content = await callQwen([{
+      role: 'user',
+      content: `你是申论出题老师。请随机生成一道申论大作文题目，要求：
+- 主题贴近国考/省考真题风格（如：乡村振兴、数字经济、基层治理、生态文明、科技创新等）
+- 每次题目不同，不要重复
+- 只输出题目本身，不要解析，不要提示词
+- 题目长度50-100字，包含背景材料和写作要求
+
+格式要求（严格JSON，不要有多余文字）：
+{"topic":"题目内容"}`,
+    }])
+    const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
+    res.json(json)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/shenlun/judge', async (req, res) => {
+  const { topic, title, intro, points, conclusion } = req.body
+  if (!topic || !title || !intro || !points || !conclusion) {
+    return res.status(400).json({ error: '缺少参数' })
+  }
+  const pointsText = points.map((p, i) =>
+    `分论点${i + 1}：${p.claim}\n论证${i + 1}：${p.argument}`
+  ).join('\n')
+  const essay = `标题：${title}\n首段：${intro}\n${pointsText}\n尾段：${conclusion}`
+  try {
+    const content = await callQwen([{
+      role: 'user',
+      content: `你是一位严格的申论阅卷老师。请对以下申论大作文进行批改。
+
+题目：${topic}
+
+学生作文：
+${essay}
+
+批改要求：
+- 满分10分，客观给分，不要虚高
+- 重点考察：主题切合度、论点清晰度、论证有力性、结构完整性、语言表达
+- feedback 用口语化方式指出主要优点和不足，200字以内
+- exemplar 提供一篇含金句的范文，金句可以是：古语、习近平总书记的话、典型案例开头、排比句等；范文600字左右，结构与题目要求对应
+
+格式要求（严格JSON，不要有多余文字）：
+{"score":数字,"feedback":"批改意见","exemplar":"范文内容"}`,
+    }])
+    const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
+    const pts = Math.round(json.score * 0.5 * 10) / 10
+    earnPoints(pts, `申论练习得${json.score}分`)
+    res.json(json)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/shenlun/save', (req, res) => {
+  const { topic, title, intro, points, conclusion, score, aiFeedback, exemplar } = req.body
+  if (!topic) return res.status(400).json({ error: '缺少题目' })
+  const bank = readShenlun()
+  const item = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    topic, title, intro, points, conclusion, score, aiFeedback, exemplar,
+    date: Date.now(),
+  }
+  bank.unshift(item)
+  writeShenlun(bank)
   res.json({ ok: true })
 })
 

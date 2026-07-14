@@ -25,7 +25,7 @@
 }
 
 /* ── 卡片 ────────────────────────────────────── */
-.container { width: 100%; }
+.container { width: 100%; overflow: hidden; }
 
 .card {
   background: var(--bg-card);
@@ -348,6 +348,8 @@
 
 .optionText {
   flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 /* ── 状态文字 ────────────────────────────────── */

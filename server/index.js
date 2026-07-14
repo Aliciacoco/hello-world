@@ -196,10 +196,10 @@ function callQwenVL(prompt, base64Image) {
 }
 
 const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格按JSON格式输出，不要有多余文字：
-{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项）","answer":"正确答案，如A","explanation":"解析内容"}`
+{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析内容"}`
 
 const CHANGSHI_EXTRACT_PROMPT = `请从这道常识题中提取信息，并丰富解析内容，严格按JSON格式输出，不要有多余文字：
-{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项）","answer":"正确答案，如A","explanation":"解析要求：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。"}`
+{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析要求：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。"}`
 
 app.post('/api/exam/extract', async (req, res) => {
   const { text, image } = req.body

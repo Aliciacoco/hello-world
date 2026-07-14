@@ -51,6 +51,13 @@ body {
   padding: 0 24px;
 }
 
+/* iOS Safari：input/textarea font-size < 16px 会自动放大页面，统一设为 1rem */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 1rem !important;
+  }
+}
+
 a {
   color: var(--accent);
   text-decoration: none;

@@ -239,6 +239,7 @@ function earnPoints(amount, reason) {
   data.balance = Math.round((data.balance + amount) * 100) / 100
   data.history.unshift(entry)
   writePoints(data)
+  return data.balance  // 返回最新余额供接口带给前端
 }
 
 function readBank(file) {
@@ -295,8 +296,8 @@ app.post('/api/bank/math', async (req, res) => {
     const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
     bank.push(newItem)
     writeBank(MATH_BANK_FILE, bank)
-    earnPoints(1, '录入数量关系题')
-    res.json(newItem)
+    const mathBalance = earnPoints(1, '录入数量关系题')
+    res.json({ ...newItem, _pts: 1, _balance: mathBalance })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -336,8 +337,8 @@ app.post('/api/bank/idiom', async (req, res) => {
     const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
     bank.push(newItem)
     writeBank(IDIOM_BANK_FILE, bank)
-    earnPoints(1, '录入成语')
-    res.json(newItem)
+    const idiomBalance = earnPoints(1, '录入成语')
+    res.json({ ...newItem, _pts: 1, _balance: idiomBalance })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -390,8 +391,9 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
       writeBank(file, bank)
       const subjectName = { judgement: '判断推理', analysis: '资料分析', changshi: '常识' }[prefix] || prefix
       const uploadPoints = prefix === 'changshi' ? 0.5 : 1
-      if (!req.body.silent) earnPoints(uploadPoints, `录入${subjectName}题`)
-      res.json(newItem)
+      let newBalance = null
+      if (!req.body.silent) newBalance = earnPoints(uploadPoints, `录入${subjectName}题`)
+      res.json({ ...newItem, _pts: newBalance !== null ? uploadPoints : undefined, _balance: newBalance })
     } catch (e) {
       res.status(500).json({ error: e.message })
     }

@@ -106,7 +106,14 @@ export default function Idiom() {
         body: JSON.stringify({ text: uploadText.trim(), image: uploadImage }),
       })
       if (!res.ok) throw new Error()
-      setExtracted(await res.json())
+      const raw = await res.json()
+      if (raw._pts != null && raw._balance != null) {
+        window.dispatchEvent(new CustomEvent('points-earned', {
+          detail: { amount: raw._pts, balance: raw._balance },
+        }))
+      }
+      const { _pts: _p, _balance: _b, ...extracted } = raw
+      setExtracted(extracted as IdiomQuestion)
       setUploadPhase('preview')
     } catch {
       setUploadError('提取失败，请重试')

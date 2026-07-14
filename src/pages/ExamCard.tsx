@@ -181,7 +181,14 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         body: JSON.stringify({ text: uploadText.trim(), image: imageBase64 }),
       })
       if (!res.ok) throw new Error()
-      const item = await res.json()
+      const raw = await res.json()
+      // 触发积分 toast（服务端已写分，这里只触发前端通知）
+      if (raw._pts != null && raw._balance != null) {
+        window.dispatchEvent(new CustomEvent('points-earned', {
+          detail: { amount: raw._pts, balance: raw._balance },
+        }))
+      }
+      const { _pts: _p, _balance: _b, ...item } = raw
       setUploadedItem(item)
       setUploadText('')
       setImageBase64('')

@@ -277,6 +277,79 @@
   margin: 0;
 }
 
+/* ── 选项按钮 ────────────────────────────────── */
+.optionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.optionBtn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  background: var(--bg-inset);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 13px;
+  text-align: left;
+  cursor: pointer;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  font-size: 0.9rem;
+  color: var(--text);
+  line-height: 1.6;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.optionBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.optionBtn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.optionBtnSelected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.optionBtnCorrect {
+  border-color: var(--green);
+  background: rgba(52, 199, 89, 0.09);
+}
+
+.optionBtnWrong {
+  border-color: var(--red);
+  background: rgba(192, 57, 43, 0.08);
+}
+
+.optionLetter {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 16px;
+  flex-shrink: 0;
+}
+
+.optionBtnSelected .optionLetter {
+  color: var(--accent);
+}
+
+.optionBtnCorrect .optionLetter {
+  color: var(--green);
+}
+
+.optionBtnWrong .optionLetter {
+  color: var(--red);
+}
+
+.optionText {
+  flex: 1;
+}
+
 /* ── 状态文字 ────────────────────────────────── */
 .hint {
   color: var(--text-tertiary);

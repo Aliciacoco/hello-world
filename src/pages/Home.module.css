@@ -21,8 +21,13 @@
 }
 
 @media (max-width: 600px) {
+  .page {
+    padding-left: 10px;
+    padding-right: 10px;
+    overflow-x: hidden;
+  }
   .grid {
     grid-template-columns: 1fr;
-    max-width: 500px;
+    max-width: 100%;
   }
 }

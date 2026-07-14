@@ -4,3 +4,13 @@ dist
 .env.local
 .claude/
 *.xlsx
+
+# 运行时数据文件，不入库
+server/wrong_answers.json
+server/question_bank.json
+server/idiom_bank.json
+server/judgement_bank.json
+server/analysis_bank.json
+server/changshi_bank.json
+server/shenlun_bank.json
+server/points.json

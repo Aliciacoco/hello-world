@@ -600,11 +600,23 @@ app.post('/api/shenlun/judge', async (req, res) => {
 学生作文：
 ${essay}
 
+评分标准（满分10分）：
+- 6分：结构完整，但论证空洞，主题切合但表达平庸，缺乏具体论据
+- 7分：论点较清晰，有一定论证内容，但缺乏金句或具体案例支撑
+- 8分：结构完整，论据有力，语言流畅，有至少1句金句自然融入
+- 9分：论证充分，金句运用得当，逻辑严密，首尾呼应，整体质量高
+- 10分：思想深刻，语言精炼，论证无懈可击，堪称范文
+
 批改要求：
-- 满分10分，客观给分，不要虚高
+- 按上述标准客观给分，不要虚高
 - 重点考察：主题切合度、论点清晰度、论证有力性、结构完整性、语言表达
 - feedback 用口语化方式指出主要优点和不足，200字以内
-- exemplar 提供一篇含金句的范文，金句可以是：古语、习近平总书记的话、典型案例开头、排比句等；范文600字左右，结构与题目要求对应
+- exemplar 提供一篇高质量范文，要求：
+  * 字数1000-1200字
+  * 首段首句一句话亮明总论点
+  * 每个分论点段首句即为该分论点核心观点，中间展开论据（事例/数据/分析）
+  * 尾段总结升华，呼应首段总论点
+  * 自然融入金句（古语、习近平总书记的话、典型案例、排比句等）
 
 格式要求（严格JSON，不要有多余文字）：
 {"score":数字,"feedback":"批改意见","exemplar":"范文内容"}`,
@@ -619,16 +631,32 @@ ${essay}
 })
 
 app.post('/api/shenlun/save', (req, res) => {
-  const { topic, title, intro, points, conclusion, score, aiFeedback, exemplar } = req.body
+  const { topic, answer, score, feedback, exemplar } = req.body
   if (!topic) return res.status(400).json({ error: '缺少题目' })
   const bank = readShenlun()
   const item = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    topic, title, intro, points, conclusion, score, aiFeedback, exemplar,
+    topic,
+    ...(answer || {}),
+    score,
+    feedback,
+    exemplar,
     date: Date.now(),
   }
   bank.unshift(item)
   writeShenlun(bank)
+  res.json({ ok: true })
+})
+
+app.get('/api/shenlun', (req, res) => {
+  res.json(readShenlun())
+})
+
+app.delete('/api/shenlun/:id', (req, res) => {
+  const bank = readShenlun()
+  const filtered = bank.filter(item => item.id !== req.params.id)
+  if (filtered.length === bank.length) return res.status(404).json({ error: '记录不存在' })
+  writeShenlun(filtered)
   res.json({ ok: true })
 })
 

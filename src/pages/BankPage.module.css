@@ -23,19 +23,15 @@
 /* 标签页 */
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   background: rgba(180, 160, 120, 0.12);
   border-radius: 9px;
   padding: 2px;
   gap: 2px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
-.tabs::-webkit-scrollbar { display: none; }
-
 .tab {
-  padding: 6px 12px;
+  padding: 6px 10px;
   border: none;
   border-radius: 7px;
   background: transparent;
@@ -45,8 +41,8 @@
   font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
   transition: all 0.15s;
-  white-space: nowrap;
-  flex-shrink: 0;
+  flex: 1 1 calc(25% - 4px);
+  text-align: center;
 }
 
 .tab:hover { color: var(--text); }
@@ -133,6 +129,15 @@
   font-weight: 600;
   background: rgba(192, 57, 43, 0.08);
   color: var(--red);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.shenlunScore {
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(120, 90, 60, 0.1);
+  color: var(--accent);
   padding: 2px 8px;
   border-radius: 20px;
 }

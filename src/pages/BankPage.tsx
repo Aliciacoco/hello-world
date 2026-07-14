@@ -7,7 +7,7 @@ function formatOptions(options: string): string {
     .trimStart()
 }
 
-type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'changshi' | 'calc'
+type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'changshi' | 'calc' | 'shenlun'
 
 interface Review {
   date: number
@@ -32,6 +32,19 @@ interface CalcRecord {
   correctAnswer: number
   explanation: string
   reason?: string
+  date: number
+}
+
+interface ShenlunRecord {
+  id: string
+  topic: string
+  title?: string
+  intro?: string
+  points?: { claim: string; argument: string }[]
+  conclusion?: string
+  score?: number
+  feedback?: string
+  exemplar?: string
   date: number
 }
 
@@ -257,6 +270,48 @@ function CalcItem({ item, onDelete }: { item: CalcRecord; onDelete: (id: string)
   )
 }
 
+function ShenlunBankItem({ item, onDelete }: { item: ShenlunRecord; onDelete: (id: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [showExemplar, setShowExemplar] = useState(false)
+
+  const handleDelete = async () => {
+    if (!confirm('确定删除这条申论记录？')) return
+    const res = await fetch(`/api/shenlun/${item.id}`, { method: 'DELETE' })
+    if (res.ok) onDelete(item.id)
+  }
+
+  return (
+    <div className={styles.item}>
+      <div className={styles.itemHeader} onClick={() => setOpen(v => !v)}>
+        <span className={styles.itemTitle}>{item.topic.slice(0, 40)}{item.topic.length > 40 ? '…' : ''}</span>
+        <span className={styles.itemMeta}>
+          {item.score != null && <span className={styles.shenlunScore}>{item.score}/10</span>}
+          <span className={styles.chevron}>{open ? '▲' : '▼'}</span>
+        </span>
+      </div>
+      {open && (
+        <div className={styles.itemBody}>
+          <p className={styles.stem}>{item.topic}</p>
+          {item.title && <p className={styles.answer}><strong>我的标题：</strong>{item.title}</p>}
+          {item.feedback && <p className={styles.explanation}>{item.feedback}</p>}
+          <button
+            className={styles.editBtn}
+            style={{ alignSelf: 'flex-start', marginTop: 4 }}
+            onClick={() => setShowExemplar(v => !v)}
+          >{showExemplar ? '收起范文' : '查看范文'}</button>
+          {showExemplar && item.exemplar && (
+            <p className={styles.explanation} style={{ fontStyle: 'normal', whiteSpace: 'pre-wrap' }}>{item.exemplar}</p>
+          )}
+          <p className={styles.reviewDate}>{new Date(item.date).toLocaleDateString('zh-CN')}</p>
+          <div className={styles.actions}>
+            <button className={styles.deleteBtn} onClick={handleDelete}>删除</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const TAB_CONFIG: { key: BankTab; label: string; apiPath: string }[] = [
   { key: 'idiom', label: '成语辨析', apiPath: '/api/bank/idiom' },
   { key: 'math', label: '数量关系', apiPath: '/api/bank/math' },
@@ -264,12 +319,14 @@ const TAB_CONFIG: { key: BankTab; label: string; apiPath: string }[] = [
   { key: 'analysis', label: '资料分析', apiPath: '/api/bank/analysis' },
   { key: 'changshi', label: '常识', apiPath: '/api/bank/changshi' },
   { key: 'calc', label: '速算记录', apiPath: '/api/wrong-answers/speed' },
+  { key: 'shenlun', label: '申论', apiPath: '/api/shenlun' },
 ]
 
 export default function BankPage() {
   const [tab, setTab] = useState<BankTab>('idiom')
   const [list, setList] = useState<BankItem[]>([])
   const [calcList, setCalcList] = useState<CalcRecord[]>([])
+  const [shenlunList, setShenlunList] = useState<ShenlunRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [counts, setCounts] = useState<Partial<Record<BankTab, number>>>({})
 
@@ -294,6 +351,9 @@ export default function BankPage() {
       .then(data => {
         if (tab === 'calc') {
           setCalcList(data)
+        } else if (tab === 'shenlun') {
+          setShenlunList(data)
+          setCounts(c => ({ ...c, [tab]: data.length }))
         } else {
           setList(data)
           setCounts(c => ({ ...c, [tab]: data.length }))
@@ -323,6 +383,14 @@ export default function BankPage() {
     })
   }
 
+  const handleShenlunDelete = (id: string) => {
+    setShenlunList(l => {
+      const next = l.filter(item => item.id !== id)
+      setCounts(c => ({ ...c, shenlun: next.length }))
+      return next
+    })
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -348,6 +416,10 @@ export default function BankPage() {
         calcList.length === 0
           ? <p className={styles.empty}>暂无速算错题记录</p>
           : <div className={styles.list}>{calcList.map(item => <CalcItem key={item.id} item={item} onDelete={handleCalcDelete} />)}</div>
+      ) : tab === 'shenlun' ? (
+        shenlunList.length === 0
+          ? <p className={styles.empty}>暂无申论练习记录</p>
+          : <div className={styles.list}>{shenlunList.map(item => <ShenlunBankItem key={item.id} item={item} onDelete={handleShenlunDelete} />)}</div>
       ) : list.length === 0 ? (
         <p className={styles.empty}>题库暂无内容</p>
       ) : (

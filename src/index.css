@@ -37,6 +37,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  /* 禁止横向触摸手势，防止上下滑时误触左右滑 */
+  touch-action: pan-y;
 }
 
 #root {

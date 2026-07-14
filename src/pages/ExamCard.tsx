@@ -28,8 +28,12 @@ function formatOptions(options: string): string {
 }
 
 // 把选项字符串解析为 [{letter, text}] 数组
+// 先做归一化（插入换行），兼容 AI 输出的单行格式 "A. xxx B. yyy C. zzz D. www"
 function parseOptions(raw: string): { letter: string; text: string }[] {
-  return raw
+  const normalized = raw
+    .replace(/\s*([A-D][.、．])/g, '\n$1')
+    .trimStart()
+  return normalized
     .split('\n')
     .map(l => l.trim())
     .filter(Boolean)

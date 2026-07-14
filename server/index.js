@@ -199,7 +199,7 @@ const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格
 {"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析内容"}`
 
 const CHANGSHI_EXTRACT_PROMPT = `请从这道常识题中提取信息，并丰富解析内容，严格按JSON格式输出，不要有多余文字：
-{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析要求：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。"}`
+{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（若有选项则填，每个选项用\\n分隔；没有选项则填空字符串）","answer":"正确答案——若是选择题填对应字母（A/B/C/D，甲乙丙丁等符号需转换），若是问答题直接填答案文字","explanation":"解析要求：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。"}`
 
 app.post('/api/exam/extract', async (req, res) => {
   const { text, image } = req.body
@@ -247,6 +247,30 @@ function readBank(file) {
 
 function writeBank(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
+}
+
+// 修复 AI 重复输出选项前缀的问题，如 "A. A. 11" → "A. 11"
+function fixDuplicateOptionLetters(options) {
+  if (!options) return options
+  return options.split('\n').map(line =>
+    line.replace(/^([A-D][.、．]\s*)[A-D][.、．]\s*/, '$1')
+  ).join('\n')
+}
+
+function cleanupBankOptions() {
+  const files = [MATH_BANK_FILE, JUDGEMENT_BANK_FILE, ANALYSIS_BANK_FILE, CHANGSHI_BANK_FILE]
+  files.forEach(file => {
+    try {
+      const bank = readBank(file)
+      let changed = false
+      bank.forEach(item => {
+        if (!item.options) return
+        const fixed = fixDuplicateOptionLetters(item.options)
+        if (fixed !== item.options) { item.options = fixed; changed = true }
+      })
+      if (changed) { writeBank(file, bank); console.log(`[startup] 修复选项格式：${path.basename(file)}`) }
+    } catch {}
+  })
 }
 
 // 数量关系题库
@@ -426,10 +450,10 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
           role: 'user',
           content: `题目：${stem}
 参考答案：${correctAnswer}
-学生回答：${userAnswer}
 背景解析：${explanation || ''}
+学生回答：${userAnswer}
 
-你是一个严格的常识老师。判断标准：学生回答必须与参考答案高度吻合——核心知识点要答到位，方向偏差、答案不完整、只说大概意思都算错。先说"答对了"或"答错了"，再用一两句话点出关键或纠错，答对了顺带补充一个记忆要点。整体80字以内，像聊天一样说话，不用列表。
+你是一个随和的常识老师。判断原则：只要学生答出了核心知识点就算对，不要求措辞与参考答案完全一致；只有答错了方向、张冠李戴或完全偏离才算错，答案不完整但方向对也可以给对。先说"答对了"或"答错了"，再一两句话点出关键或纠错，答对了顺带一个记忆要点。80字以内，聊天语气，不用列表。
 格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
         }])
         const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
@@ -669,6 +693,9 @@ if (fs.existsSync(FRONTEND_DIST)) {
     res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
   })
 }
+
+// 启动时清理题库中的重复选项前缀
+cleanupBankOptions()
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

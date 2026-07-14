@@ -29,6 +29,7 @@ function formatOptions(options: string): string {
 
 // 把选项字符串解析为 [{letter, text}] 数组
 // 先做归一化（插入换行），兼容 AI 输出的单行格式 "A. xxx B. yyy C. zzz D. www"
+// 同时修复 AI 重复前缀问题，如 "A. A. 11" → {letter:'A', text:'11'}
 function parseOptions(raw: string): { letter: string; text: string }[] {
   const normalized = raw
     .replace(/\s*([A-D][.、．])/g, '\n$1')
@@ -39,7 +40,10 @@ function parseOptions(raw: string): { letter: string; text: string }[] {
     .filter(Boolean)
     .map(line => {
       const m = line.match(/^([A-D])[.、．]\s*(.*)/)
-      return m ? { letter: m[1], text: m[2] } : null
+      if (!m) return null
+      // 去掉 text 开头多余的字母前缀，如 "A. 11" → "11"
+      const text = m[2].replace(/^[A-D][.、．]\s*/, '').trim()
+      return { letter: m[1], text }
     })
     .filter((x): x is { letter: string; text: string } => x !== null)
 }
@@ -75,7 +79,9 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     try {
       const res = await fetch(`/api/bank/${bankType}/random`)
       if (!res.ok) throw new Error()
-      setQuestion(await res.json())
+      const q = await res.json()
+      sessionStorage.setItem(`exam_q_${bankType}`, JSON.stringify(q))
+      setQuestion(q)
     } catch {
       setError('题库暂无题目，请先上传')
     } finally {
@@ -83,7 +89,25 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     }
   }, [bankType])
 
-  useEffect(() => { fetchQuestion() }, [fetchQuestion])
+  useEffect(() => {
+    // 优先从 sessionStorage 恢复，避免切换页面时换题
+    const saved = sessionStorage.getItem(`exam_q_${bankType}`)
+    if (saved) {
+      try {
+        setQuestion(JSON.parse(saved))
+        setLoadingQ(false)
+        setUserAnswer('')
+        setPhase('question')
+        setError('')
+        setIsCorrect(null)
+        setAiFeedback('')
+        return
+      } catch {
+        sessionStorage.removeItem(`exam_q_${bankType}`)
+      }
+    }
+    fetchQuestion()
+  }, [bankType, fetchQuestion])
 
   const handleSubmitAnswer = async () => {
     if (!userAnswer.trim()) { setError('请选择答案'); return }

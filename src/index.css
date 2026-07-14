@@ -51,10 +51,14 @@ body {
   padding: 0 24px;
 }
 
-/* iOS Safari：input/textarea font-size < 16px 会自动放大页面，统一设为 1rem */
+/* iOS Safari：input/textarea font-size < 16px 会自动放大页面，统一设为 16px */
+input, textarea, select {
+  font-size: 16px;
+}
 @media (max-width: 768px) {
   input, textarea, select {
-    font-size: 1rem !important;
+    font-size: 16px !important;
+    touch-action: manipulation;
   }
 }
 

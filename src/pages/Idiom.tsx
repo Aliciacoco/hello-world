@@ -35,18 +35,31 @@ export default function Idiom() {
   const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchQuestion = useCallback(async () => {
+  const fetchQuestion = useCallback(async (force = false) => {
     setLoadingQuestion(true)
     setError('')
     setInput('')
     setJudgeResult(null)
     setPhase('question')
     setEmptyBank(false)
+    // 刷新页面时保持同一道题，除非主动点"下一题"
+    if (!force) {
+      const cached = sessionStorage.getItem('idiom_current')
+      if (cached) {
+        try {
+          setQuestion(JSON.parse(cached))
+          setLoadingQuestion(false)
+          return
+        } catch { /* 缓存损坏则继续请求 */ }
+      }
+    }
     try {
       const res = await fetch('/api/bank/idiom/random')
       if (res.status === 404) { setEmptyBank(true); return }
       if (!res.ok) throw new Error()
-      setQuestion(await res.json())
+      const q = await res.json()
+      sessionStorage.setItem('idiom_current', JSON.stringify(q))
+      setQuestion(q)
     } catch {
       setError('获取题目失败，请重试')
     } finally {
@@ -65,7 +78,7 @@ export default function Idiom() {
       const res = await fetch('/api/idiom/judge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: question.word, answer: input.trim() }),
+        body: JSON.stringify({ id: question.id, word: question.word, answer: input.trim() }),
       })
       if (!res.ok) throw new Error()
       const result: JudgeResult = await res.json()
@@ -128,7 +141,7 @@ export default function Idiom() {
     setUploadPhase('idle')
     setUploadError('')
     if (fileInputRef.current) fileInputRef.current.value = ''
-    fetchQuestion()
+    fetchQuestion(true)
     setMode('practice')
   }
 
@@ -179,7 +192,7 @@ export default function Idiom() {
                       : <p className={styles.wrongHint}>有点偏差，看看这个：</p>
                     }
                     <p className={styles.explanation}>{judgeResult.feedback}</p>
-                    <button className={styles.btn} onClick={fetchQuestion}>下一题</button>
+                    <button className={styles.btn} onClick={() => fetchQuestion(true)}>下一题</button>
                   </div>
                 )}
               </>

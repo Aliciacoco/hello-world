@@ -129,23 +129,35 @@ app.get('/api/idiom/question', async (req, res) => {
 })
 
 app.post('/api/idiom/judge', async (req, res) => {
-  const { word, answer } = req.body
+  const { word, answer, id } = req.body
   if (!word || !answer) return res.status(400).json({ error: '缺少参数' })
+  // 从题库取出标准答案作为参考
+  let stdAnswer = ''
+  let stdExplanation = ''
+  if (id) {
+    const bank = readBank(IDIOM_BANK_FILE)
+    const item = bank.find(q => q.id === id)
+    if (item) {
+      stdAnswer = item.answer || ''
+      stdExplanation = item.explanation || ''
+    }
+  }
+  const stdRef = stdAnswer
+    ? `\n\n参考标准答案：${stdAnswer}${stdExplanation ? '\n详细解析：' + stdExplanation : ''}`
+    : ''
   try {
     const content = await callQwen([{
       role: 'user',
       content: `成语：${word}
-学生的回答：${answer}
+学生的回答：${answer}${stdRef}
 
-你是一个严格的语文老师，用口语化方式点评这个回答。
-判断标准（必须同时满足才算对）：
-1. 答出了这个成语的核心含义（不能只写笼统大意或近义词替换）
-2. 答出了典型的使用场景或对象（用于什么情境/什么人）
-3. 没有明显的误解或方向错误
+你是一个语文老师，以标准答案为基准判断学生回答是否正确，用口语化方式点评。
+判断规则：
+- 有标准答案时，以标准答案为准，学生答出了核心含义就算对，不要额外苛求使用场景
+- 没有标准答案时，判断是否答出了核心含义且没有明显误解
+- 大意相符、表达不完整可以判对，但方向错误或有明显误解要判错
 
-只要有一条没达到就判错，不要因为"方向对"或"差不多"就判对。
-
-点评方式：如果答错了，直接说"你是不是以为……其实……"，指出最关键的误区，再用一两句说清楚正确含义和用法；如果答对了，简单肯定并补充一个容易混淆的词。不要用列表，像聊天一样说话，整体100字以内。
+点评方式：如果答错了，直接说"你是不是以为……其实……"，指出最关键的误区，再用一两句说清楚正确含义；如果答对了，简单肯定并补充一个容易混淆的点。不要用列表，像聊天一样说话，整体100字以内。
 
 格式要求（严格JSON，不要有多余文字）：
 {"correct":true或false,"feedback":"你的点评"}`,

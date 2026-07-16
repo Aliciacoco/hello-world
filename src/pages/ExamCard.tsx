@@ -69,7 +69,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchQuestion = useCallback(async () => {
+  const fetchQuestion = useCallback(async (excludeId?: string) => {
     setLoadingQ(true)
     setError('')
     setUserAnswer('')
@@ -77,7 +77,10 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     setAiFeedback('')
     setPhase('question')
     try {
-      const res = await fetch(`/api/bank/${bankType}/random`)
+      const url = excludeId
+        ? `/api/bank/${bankType}/random?exclude=${encodeURIComponent(excludeId)}`
+        : `/api/bank/${bankType}/random`
+      const res = await fetch(url)
       if (!res.ok) throw new Error()
       const q = await res.json()
       sessionStorage.setItem(`exam_q_${bankType}`, JSON.stringify(q))
@@ -222,7 +225,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
             {loadingQ && <p className={styles.loading}>加载题目...</p>}
             {!loadingQ && !question && (
               <>{error && <p className={styles.error}>{error}</p>}
-                <button className={styles.btn} onClick={fetchQuestion}>重试</button></>
+                <button className={styles.btn} onClick={() => fetchQuestion()}>重试</button></>
             )}
 
             {/* ── 答题阶段 ── */}
@@ -321,7 +324,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                   </div>
                 )}
                 <p className={styles.explanation}>{question.explanation}</p>
-                <button className={styles.btn} onClick={fetchQuestion}>下一题</button>
+                <button className={styles.btn} onClick={() => fetchQuestion(question.id)}>下一题</button>
               </>
             )}
           </>

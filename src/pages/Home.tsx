@@ -2,6 +2,7 @@ import PracticeCard from './Practice'
 import IdiomCard from './Idiom'
 import ExamCard from './ExamCard'
 import ShenlunCard from './Shenlun'
+import ZhengzhiCard from './Zhengzhi'
 import styles from './Home.module.css'
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
         <ExamCard subject="判断推理" bankType="judgement" pointsPerCorrect={1} />
         <ExamCard subject="资料分析" bankType="analysis" pointsPerCorrect={1} />
         <ShenlunCard />
+        <ZhengzhiCard />
       </div>
     </div>
   )

@@ -50,12 +50,12 @@ app.delete('/api/wrong-answers', (req, res) => {
   res.json({ ok: true })
 })
 
-function callQwen(messages) {
+function callQwen(messages, maxTokens = 800) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       model: 'qwen-plus',
       messages,
-      max_tokens: 800,
+      max_tokens: maxTokens,
     })
     const req = https.request({
       hostname: 'dashscope.aliyuncs.com',
@@ -142,8 +142,8 @@ app.post('/api/idiom/judge', async (req, res) => {
       stdExplanation = item.explanation || ''
     }
   }
-  const stdRef = stdAnswer
-    ? `\n\n参考标准答案：${stdAnswer}${stdExplanation ? '\n详细解析：' + stdExplanation : ''}`
+  const stdRef = (stdAnswer || stdExplanation)
+    ? `\n\n参考标准答案：${stdAnswer || '（见解析）'}${stdExplanation ? '\n详细解析：' + stdExplanation : ''}`
     : ''
   try {
     const content = await callQwen([{
@@ -235,6 +235,7 @@ const IDIOM_BANK_FILE = path.join(DATA_DIR, 'idiom_bank.json')
 const JUDGEMENT_BANK_FILE = path.join(DATA_DIR, 'judgement_bank.json')
 const ANALYSIS_BANK_FILE = path.join(DATA_DIR, 'analysis_bank.json')
 const CHANGSHI_BANK_FILE = path.join(DATA_DIR, 'changshi_bank.json')
+const ZHENGZHI_BANK_FILE = path.join(DATA_DIR, 'zhengzhi_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
 
 function readPoints() {
@@ -290,7 +291,8 @@ function cleanupBankOptions() {
 app.get('/api/bank/math/random', (req, res) => {
   const bank = readBank(MATH_BANK_FILE)
   if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  res.json(bank[Math.floor(Math.random() * bank.length)])
+  const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => q.id !== req.query.exclude) : bank
+  res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
 app.post('/api/bank/math', async (req, res) => {
@@ -329,7 +331,8 @@ app.patch('/api/bank/math/:id/review', (req, res) => {
 app.get('/api/bank/idiom/random', (req, res) => {
   const bank = readBank(IDIOM_BANK_FILE)
   if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  res.json(bank[Math.floor(Math.random() * bank.length)])
+  const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => q.id !== req.query.exclude) : bank
+  res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
 app.post('/api/bank/idiom', async (req, res) => {
@@ -379,7 +382,8 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
     const bank = readBank(file)
     if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-    res.json(bank[Math.floor(Math.random() * bank.length)])
+    const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => q.id !== req.query.exclude) : bank
+    res.json(pool[Math.floor(Math.random() * pool.length)])
   })
 
   app.get(`/api/bank/${prefix}`, (req, res) => {
@@ -620,14 +624,11 @@ app.post('/api/shenlun/topic', async (req, res) => {
 })
 
 app.post('/api/shenlun/judge', async (req, res) => {
-  const { topic, title, intro, points, conclusion } = req.body
-  if (!topic || !title || !intro || !points || !conclusion) {
+  const { topic, title, article } = req.body
+  if (!topic || !title || !article) {
     return res.status(400).json({ error: '缺少参数' })
   }
-  const pointsText = points.map((p, i) =>
-    `分论点${i + 1}：${p.claim}\n论证${i + 1}：${p.argument}`
-  ).join('\n')
-  const essay = `标题：${title}\n首段：${intro}\n${pointsText}\n尾段：${conclusion}`
+  const essay = `标题：${title}\n\n${article}`
   try {
     const content = await callQwen([{
       role: 'user',
@@ -649,33 +650,50 @@ ${essay}
 - 按上述标准客观给分，不要虚高
 - 重点考察：主题切合度、论点清晰度、论证有力性、结构完整性、语言表达
 - feedback 用口语化方式指出主要优点和不足，200字以内
-- exemplar 提供一篇高质量范文，要求：
+- 范文写在 ---EXEMPLAR--- 分隔符之后（纯文本，不要用JSON包裹），要求：
   * 字数1000-1200字
   * 首段首句一句话亮明总论点
   * 每个分论点段首句即为该分论点核心观点，中间展开论据（事例/数据/分析）
   * 尾段总结升华，呼应首段总论点
   * 自然融入金句（古语、习近平总书记的话、典型案例、排比句等）
 
-格式要求（严格JSON，不要有多余文字）：
-{"score":数字,"feedback":"批改意见","exemplar":"范文内容"}`,
-    }])
-    const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
-    const pts = Math.round(json.score * 0.5 * 10) / 10
-    earnPoints(pts, `申论练习得${json.score}分`)
-    res.json(json)
+请严格按此格式输出（两部分之间只有一行 ---EXEMPLAR--- 分隔符）：
+{"score":数字,"feedback":"批改意见"}
+---EXEMPLAR---
+范文正文`,
+    }], 4000)  // 范文需要更多 token
+    const sepIdx = content.indexOf('---EXEMPLAR---')
+    let score, feedback, exemplar
+    if (sepIdx !== -1) {
+      const jsonPart = content.slice(0, sepIdx).trim().replace(/```json|```/g, '')
+      const json = JSON.parse(jsonPart)
+      score = json.score
+      feedback = json.feedback
+      exemplar = content.slice(sepIdx + 14).trim()
+    } else {
+      // 降级：尝试直接解析整个响应为 JSON
+      const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
+      score = json.score
+      feedback = json.feedback
+      exemplar = json.exemplar || ''
+    }
+    const pts = Math.round(score * 0.5 * 10) / 10
+    earnPoints(pts, `申论练习得${score}分`)
+    res.json({ score, feedback, exemplar })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
 })
 
 app.post('/api/shenlun/save', (req, res) => {
-  const { topic, answer, score, feedback, exemplar } = req.body
+  const { topic, title, article, score, feedback, exemplar } = req.body
   if (!topic) return res.status(400).json({ error: '缺少题目' })
   const bank = readShenlun()
   const item = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     topic,
-    ...(answer || {}),
+    title: title || '',
+    article: article || '',
     score,
     feedback,
     exemplar,
@@ -695,6 +713,64 @@ app.delete('/api/shenlun/:id', (req, res) => {
   const filtered = bank.filter(item => item.id !== req.params.id)
   if (filtered.length === bank.length) return res.status(404).json({ error: '记录不存在' })
   writeShenlun(filtered)
+  res.json({ ok: true })
+})
+
+// ——— 政治理论 flashcard 模块 ———
+function readZhengzhi() {
+  try { return JSON.parse(fs.readFileSync(ZHENGZHI_BANK_FILE, 'utf8')) } catch { return [] }
+}
+function writeZhengzhi(data) {
+  fs.writeFileSync(ZHENGZHI_BANK_FILE, JSON.stringify(data, null, 2))
+}
+
+app.get('/api/bank/zhengzhi/random', (req, res) => {
+  const bank = readZhengzhi()
+  if (bank.length === 0) return res.status(404).json({ error: '卡片库为空，请先上传知识点' })
+  const pool = bank.length > 1 && req.query.exclude ? bank.filter(c => c.id !== req.query.exclude) : bank
+  res.json(pool[Math.floor(Math.random() * pool.length)])
+})
+
+app.get('/api/bank/zhengzhi', (req, res) => {
+  res.json(readZhengzhi())
+})
+
+const ZHENGZHI_EXTRACT_PROMPT = `请从以下政治理论内容中提取知识点，每个知识点输出一张卡片，严格按JSON数组格式输出，不要有多余文字：
+[{"front":"知识点标题或问题","back":"详细解释、含义或记忆要点"}]
+最多提取5张卡片，内容不宜太长，back 不超过100字。`
+
+app.post('/api/bank/zhengzhi', async (req, res) => {
+  const { text, image } = req.body
+  if (!text && !image) return res.status(400).json({ error: '请提供文字或图片' })
+  try {
+    let content
+    if (image) {
+      content = await callQwenVL(ZHENGZHI_EXTRACT_PROMPT, image)
+    } else {
+      content = await callQwen([{ role: 'user', content: `${ZHENGZHI_EXTRACT_PROMPT}\n\n内容：\n${text}` }])
+    }
+    const cards = JSON.parse(content.trim().replace(/```json|```/g, ''))
+    const bank = readZhengzhi()
+    const newItems = (Array.isArray(cards) ? cards : [cards]).map(c => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      front: c.front || '',
+      back: c.back || '',
+      reviews: [],
+    }))
+    bank.push(...newItems)
+    writeZhengzhi(bank)
+    const newBalance = earnPoints(newItems.length * 0.5, `录入${newItems.length}张政治理论卡片`)
+    res.json({ items: newItems, _pts: newItems.length * 0.5, _balance: newBalance })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.delete('/api/bank/zhengzhi/:id', (req, res) => {
+  const bank = readZhengzhi()
+  const filtered = bank.filter(c => c.id !== req.params.id)
+  if (filtered.length === bank.length) return res.status(404).json({ error: '卡片不存在' })
+  writeZhengzhi(filtered)
   res.json({ ok: true })
 })
 

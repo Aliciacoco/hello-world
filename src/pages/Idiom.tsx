@@ -199,7 +199,7 @@ export default function Idiom() {
             ) : (
               <>
                 {error && <p className={styles.error}>{error}</p>}
-                <button className={styles.btn} onClick={fetchQuestion}>重新获取</button>
+                <button className={styles.btn} onClick={() => fetchQuestion()}>重新获取</button>
               </>
             )}
           </>

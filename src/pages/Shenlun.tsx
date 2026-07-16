@@ -1,21 +1,8 @@
 import { useState } from 'react'
-import { earnPoints } from '../utils/points'
 import examStyles from './ExamCard.module.css'
 import styles from './Shenlun.module.css'
 
-type Phase = 'idle' | 'generating' | 'writing' | 'judging' | 'result' | 'editing' | 'saving' | 'saved'
-
-interface Point {
-  claim: string
-  argument: string
-}
-
-interface Answer {
-  title: string
-  intro: string
-  points: Point[]
-  conclusion: string
-}
+type Phase = 'idle' | 'generating' | 'writing' | 'judging' | 'result' | 'saving' | 'saved'
 
 interface JudgeResult {
   score: number
@@ -23,17 +10,13 @@ interface JudgeResult {
   exemplar: string
 }
 
-const emptyAnswer = (): Answer => ({
-  title: '',
-  intro: '',
-  points: [{ claim: '', argument: '' }],
-  conclusion: '',
-})
+const ARTICLE_MAX = 1500
 
 export default function ShenlunCard() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [topic, setTopic] = useState('')
-  const [answer, setAnswer] = useState<Answer>(emptyAnswer())
+  const [title, setTitle] = useState('')
+  const [article, setArticle] = useState('')
   const [result, setResult] = useState<JudgeResult | null>(null)
   const [showExemplar, setShowExemplar] = useState(false)
   const [error, setError] = useState('')
@@ -41,7 +24,8 @@ export default function ShenlunCard() {
   const generateTopic = async () => {
     setPhase('generating')
     setError('')
-    setAnswer(emptyAnswer())
+    setTitle('')
+    setArticle('')
     setResult(null)
     setShowExemplar(false)
     try {
@@ -56,47 +40,24 @@ export default function ShenlunCard() {
     }
   }
 
-  const setPoint = (i: number, key: keyof Point, val: string) => {
-    setAnswer(a => {
-      const points = [...a.points]
-      points[i] = { ...points[i], [key]: val }
-      return { ...a, points }
-    })
-  }
-
-  const addPoint = () =>
-    setAnswer(a => ({ ...a, points: [...a.points, { claim: '', argument: '' }] }))
-
-  const removePoint = (i: number) =>
-    setAnswer(a => ({ ...a, points: a.points.filter((_, idx) => idx !== i) }))
-
-  const submitAnswer = async (editedAnswer?: Answer) => {
-    const ans = editedAnswer ?? answer
-    if (!ans.title.trim() || !ans.intro.trim() || !ans.conclusion.trim()) {
-      setError('标题、首段和尾段不能为空')
-      return
-    }
-    if (ans.points.some(p => !p.claim.trim())) {
-      setError('每个分论点的标题不能为空')
-      return
-    }
+  const submitAnswer = async () => {
+    if (!title.trim()) { setError('标题不能为空'); return }
+    if (!article.trim()) { setError('正文不能为空'); return }
     setError('')
-    if (editedAnswer) setAnswer(editedAnswer)
     setPhase('judging')
     try {
       const res = await fetch('/api/shenlun/judge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, ...ans }),
+        body: JSON.stringify({ topic, title: title.trim(), article: article.trim() }),
       })
       if (!res.ok) throw new Error()
       const data: JudgeResult = await res.json()
       setResult(data)
-      earnPoints(data.score * 0.5, `申论作答（${data.score}/10分）`)
       setPhase('result')
     } catch {
       setError('批改失败，请重试')
-      setPhase(editedAnswer ? 'editing' : 'writing')
+      setPhase('writing')
     }
   }
 
@@ -107,7 +68,7 @@ export default function ShenlunCard() {
       await fetch('/api/shenlun/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, answer, ...result }),
+        body: JSON.stringify({ topic, title, article, ...result }),
       })
       setPhase('saved')
     } catch {
@@ -134,7 +95,7 @@ export default function ShenlunCard() {
           <p className={styles.loading}>AI 出题中...</p>
         )}
 
-        {(phase === 'writing' || phase === 'editing') && (
+        {phase === 'writing' && (
           <>
             <div className={styles.topicBox}>
               <span className={styles.topicLabel}>题目</span>
@@ -146,64 +107,30 @@ export default function ShenlunCard() {
                 <span className={styles.fieldLabel}>标题</span>
                 <input
                   className={examStyles.input}
-                  value={answer.title}
-                  onChange={e => setAnswer(a => ({ ...a, title: e.target.value }))}
+                  value={title}
+                  onChange={e => { setTitle(e.target.value); setError('') }}
                   placeholder="写下文章标题..."
                 />
               </div>
 
               <div className={styles.field}>
-                <span className={styles.fieldLabel}>首段</span>
-                <textarea
-                  className={examStyles.textarea}
-                  value={answer.intro}
-                  onChange={e => setAnswer(a => ({ ...a, intro: e.target.value }))}
-                  placeholder="引入背景，提出总论点..."
-                  rows={3}
-                />
-              </div>
-
-              {answer.points.map((p, i) => (
-                <div key={i} className={styles.pointBlock}>
-                  <div className={styles.pointHeader}>
-                    <span className={styles.fieldLabel}>分论点 {i + 1}</span>
-                    <button
-                      className={styles.removeBtn}
-                      onClick={() => removePoint(i)}
-                      disabled={answer.points.length <= 1}
-                    >删除</button>
-                  </div>
-                  <input
-                    className={examStyles.input}
-                    value={p.claim}
-                    onChange={e => setPoint(i, 'claim', e.target.value)}
-                    placeholder={`分论点 ${i + 1} 标题`}
-                  />
-                  <textarea
-                    className={examStyles.textarea}
-                    value={p.argument}
-                    onChange={e => setPoint(i, 'argument', e.target.value)}
-                    placeholder="论证内容（事例、分析、引用等）..."
-                    rows={3}
-                  />
+                <div className={styles.articleHeader}>
+                  <span className={styles.fieldLabel}>正文</span>
+                  <span className={`${styles.charCount} ${article.length > ARTICLE_MAX ? styles.charOver : ''}`}>
+                    {article.length} / {ARTICLE_MAX}
+                  </span>
                 </div>
-              ))}
-
-              <button className={styles.addBtn} onClick={addPoint}>＋ 添加分论点</button>
-
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>尾段</span>
                 <textarea
                   className={examStyles.textarea}
-                  value={answer.conclusion}
-                  onChange={e => setAnswer(a => ({ ...a, conclusion: e.target.value }))}
-                  placeholder="总结升华，呼应总论点..."
-                  rows={3}
+                  value={article}
+                  onChange={e => { setArticle(e.target.value); setError('') }}
+                  placeholder="在此写下你的申论作文（建议 800-1500 字）..."
+                  rows={14}
                 />
               </div>
 
               {error && <p className={examStyles.error}>{error}</p>}
-              <button className={examStyles.btn} onClick={() => submitAnswer()}>提交批改</button>
+              <button className={examStyles.btn} onClick={submitAnswer}>提交批改</button>
             </div>
           </>
         )}
@@ -223,7 +150,7 @@ export default function ShenlunCard() {
               <div className={styles.scoreRow}>
                 <span className={styles.score}>{result.score}</span>
                 <span className={styles.scoreTotal}>/10</span>
-                <span className={styles.pointsHint}>+{result.score * 0.5} 积分</span>
+                <span className={styles.pointsHint}>+{Math.round(result.score * 0.5 * 10) / 10} 积分</span>
               </div>
 
               <p className={styles.feedback}>{result.feedback}</p>
@@ -242,11 +169,6 @@ export default function ShenlunCard() {
                 <p className={styles.savedHint}>已保存入库</p>
               ) : (
                 <div className={styles.actionRow}>
-                  <button
-                    className={styles.editBtn}
-                    onClick={() => setPhase('editing')}
-                    disabled={phase === 'saving'}
-                  >修改我的内容</button>
                   <button
                     className={examStyles.btn}
                     onClick={saveEntry}

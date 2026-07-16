@@ -271,6 +271,48 @@ function fixDuplicateOptionLetters(options) {
   ).join('\n')
 }
 
+function hasChoiceOptions(item) {
+  return !!item.options && /^[A-D]$/i.test(String(item.answer || '').trim())
+}
+
+function inferNumericAnswer(item) {
+  const directAnswer = String(item.answer || '').trim()
+  if (/^-?\d+(?:\.\d+)?/.test(directAnswer)) return directAnswer.match(/^-?\d+(?:\.\d+)?/)?.[0]
+
+  const text = String(item.explanation || '')
+  const matches = text.match(/-?\d+(?:\.\d+)?/g)
+  return matches ? matches[matches.length - 1] : undefined
+}
+
+function buildNumericOptions(answerText) {
+  const answer = Number(answerText)
+  if (!Number.isFinite(answer)) return null
+  const step = Number.isInteger(answer) ? Math.max(1, Math.round(Math.abs(answer) * 0.08)) : Math.max(0.1, Math.abs(answer) * 0.08)
+  const format = (n) => Number.isInteger(answer) ? String(Math.max(0, Math.round(n))) : String(Math.round(n * 10) / 10)
+  const values = [answer - step, answer, answer + step, answer + step * 2].map(format)
+  const uniqueValues = [...new Set(values)]
+  if (uniqueValues.length < 4) return null
+  return {
+    options: 'A. ' + uniqueValues[0] + '\nB. ' + uniqueValues[1] + '\nC. ' + uniqueValues[2] + '\nD. ' + uniqueValues[3],
+    answer: 'B',
+  }
+}
+
+function normalizeMathChoiceQuestion(item) {
+  if (hasChoiceOptions(item)) {
+    item.options = fixDuplicateOptionLetters(item.options)
+    item.answer = String(item.answer).trim().toUpperCase()
+    return true
+  }
+
+  const numericAnswer = inferNumericAnswer(item)
+  const generated = numericAnswer ? buildNumericOptions(numericAnswer) : null
+  if (!generated) return false
+  item.options = generated.options
+  item.answer = generated.answer
+  return true
+}
+
 function cleanupBankOptions() {
   const files = [MATH_BANK_FILE, JUDGEMENT_BANK_FILE, ANALYSIS_BANK_FILE, CHANGSHI_BANK_FILE]
   files.forEach(file => {
@@ -288,10 +330,29 @@ function cleanupBankOptions() {
 }
 
 // 数量关系题库
+function normalizeMathBankChoices() {
+  try {
+    const bank = readBank(MATH_BANK_FILE)
+    let changed = false
+    bank.forEach(item => {
+      const beforeOptions = item.options
+      const beforeAnswer = item.answer
+      if (normalizeMathChoiceQuestion(item) && (item.options !== beforeOptions || item.answer !== beforeAnswer)) {
+        changed = true
+      }
+    })
+    if (changed) {
+      writeBank(MATH_BANK_FILE, bank)
+      console.log('[startup] normalized math choice questions')
+    }
+  } catch {}
+}
+
 app.get('/api/bank/math/random', (req, res) => {
   const bank = readBank(MATH_BANK_FILE)
-  if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => q.id !== req.query.exclude) : bank
+  const choiceBank = bank.filter(hasChoiceOptions)
+  if (choiceBank.length === 0) return res.status(404).json({ error: 'No choice questions available' })
+  const pool = choiceBank.length > 1 && req.query.exclude ? choiceBank.filter(q => q.id !== req.query.exclude) : choiceBank
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -306,6 +367,9 @@ app.post('/api/bank/math', async (req, res) => {
       content = await callQwen([{ role: 'user', content: `${EXAM_EXTRACT_PROMPT}\n\n题目内容：\n${text}` }])
     }
     const extracted = JSON.parse(content.trim().replace(/```json|```/g, ''))
+    if (!normalizeMathChoiceQuestion(extracted)) {
+      return res.status(400).json({ error: 'Could not extract A/B/C/D options' })
+    }
     const bank = readBank(MATH_BANK_FILE)
     const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
     bank.push(newItem)
@@ -786,6 +850,7 @@ if (fs.existsSync(FRONTEND_DIST)) {
 
 // 启动时清理题库中的重复选项前缀
 cleanupBankOptions()
+normalizeMathBankChoices()
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

@@ -130,46 +130,48 @@ app.get('/api/idiom/question', async (req, res) => {
 
 app.post('/api/idiom/judge', async (req, res) => {
   const { word, answer, id } = req.body
-  if (!word || !answer) return res.status(400).json({ error: '缺少参数' })
-  // 从题库取出标准答案作为参考
+  if (!word || !answer) return res.status(400).json({ error: 'missing params' })
+
   let stdAnswer = ''
   let stdExplanation = ''
   if (id) {
     const bank = readBank(IDIOM_BANK_FILE)
-    const item = bank.find(q => q.id === id)
+    const item = bank.find(q => String(q.id) === String(id))
     if (item) {
       stdAnswer = item.answer || ''
       stdExplanation = item.explanation || ''
     }
   }
-  const stdRef = (stdAnswer || stdExplanation)
-    ? `\n\n参考标准答案：${stdAnswer || '（见解析）'}${stdExplanation ? '\n详细解析：' + stdExplanation : ''}`
-    : ''
+
+  const referenceText = [stdAnswer, stdExplanation].filter(Boolean).join('\n')
   try {
     const content = await callQwen([{
       role: 'user',
-      content: `成语：${word}
-学生的回答：${answer}${stdRef}
+      content: `You are grading a Chinese idiom meaning answer.
+Idiom: ${word}
+Reference answer: ${stdAnswer || '(none)'}
+Reference explanation: ${stdExplanation || '(none)'}
+Student answer: ${answer}
 
-你是一个语文老师，以标准答案为基准判断学生回答是否正确，用口语化方式点评。
-判断规则：
-- 有标准答案时，以标准答案为准，学生答出了核心含义就算对，不要额外苛求使用场景
-- 没有标准答案时，判断是否答出了核心含义且没有明显误解
-- 大意相符、表达不完整可以判对，但方向错误或有明显误解要判错
-
-点评方式：如果答错了，直接说"你是不是以为……其实……"，指出最关键的误区，再用一两句说清楚正确含义；如果答对了，简单肯定并补充一个容易混淆的点。不要用列表，像聊天一样说话，整体100字以内。
-
-格式要求（严格JSON，不要有多余文字）：
-{"correct":true或false,"feedback":"你的点评"}`,
+Grade against the reference meaning first. Do not invent a misunderstanding. Do not use rhetorical guessing phrases. If the student's answer misses the idiom object or direction, mark it wrong and explain plainly. For example, if the idiom means an arrow has reached the end of its force, an answer about a strong person reaching the final moment is wrong.
+Return strict JSON only. Set correct to true or false. Feedback must be concise Simplified Chinese, under 80 Chinese characters.
+{"correct":false,"feedback":"..."}`,
     }])
     const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
-    if (json.correct) earnPoints(0.5, '成语辨析答对')
-    res.json(json)
+    let newBalance = null
+    if (json.correct) newBalance = earnPoints(0.5, 'idiom correct')
+    res.json({
+      ...json,
+      feedback: json.feedback || '',
+      referenceAnswer: stdAnswer || referenceText || word,
+      referenceExplanation: stdExplanation || '',
+      _pts: json.correct ? 0.5 : undefined,
+      _balance: newBalance,
+    })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
 })
-
 function callQwenVL(prompt, base64Image) {
   return new Promise((resolve, reject) => {
     const messages = [{
@@ -352,7 +354,7 @@ app.get('/api/bank/math/random', (req, res) => {
   const bank = readBank(MATH_BANK_FILE)
   const choiceBank = bank.filter(hasChoiceOptions)
   if (choiceBank.length === 0) return res.status(404).json({ error: 'No choice questions available' })
-  const pool = choiceBank.length > 1 && req.query.exclude ? choiceBank.filter(q => q.id !== req.query.exclude) : choiceBank
+  const pool = choiceBank.length > 1 && req.query.exclude ? choiceBank.filter(q => String(q.id) !== String(req.query.exclude)) : choiceBank
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -395,7 +397,7 @@ app.patch('/api/bank/math/:id/review', (req, res) => {
 app.get('/api/bank/idiom/random', (req, res) => {
   const bank = readBank(IDIOM_BANK_FILE)
   if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => q.id !== req.query.exclude) : bank
+  const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => String(q.id) !== String(req.query.exclude)) : bank
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -446,7 +448,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
     const bank = readBank(file)
     if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-    const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => q.id !== req.query.exclude) : bank
+    const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => String(q.id) !== String(req.query.exclude)) : bank
     res.json(pool[Math.floor(Math.random() * pool.length)])
   })
 
@@ -539,8 +541,9 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
 格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
         }])
         const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
-        if (json.correct) earnPoints(judgeConfig.answerPoints, `${judgeConfig.subjectName}答对`)
-        res.json(json)
+        let newBalance = null
+        if (json.correct) newBalance = earnPoints(judgeConfig.answerPoints, `${judgeConfig.subjectName} correct`)
+        res.json({ ...json, _pts: json.correct ? judgeConfig.answerPoints : undefined, _balance: newBalance })
       } catch (e) {
         res.status(500).json({ error: e.message })
       }
@@ -791,7 +794,7 @@ function writeZhengzhi(data) {
 app.get('/api/bank/zhengzhi/random', (req, res) => {
   const bank = readZhengzhi()
   if (bank.length === 0) return res.status(404).json({ error: '卡片库为空，请先上传知识点' })
-  const pool = bank.length > 1 && req.query.exclude ? bank.filter(c => c.id !== req.query.exclude) : bank
+  const pool = bank.length > 1 && req.query.exclude ? bank.filter(c => String(c.id) !== String(req.query.exclude)) : bank
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 

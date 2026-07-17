@@ -134,6 +134,11 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         const data = await res.json()
         setIsCorrect(data.correct)
         setAiFeedback(data.feedback)
+        if (data.correct && data._pts != null && data._balance != null) {
+          window.dispatchEvent(new CustomEvent('points-earned', {
+            detail: { amount: data._pts, balance: data._balance },
+          }))
+        }
         setCardAnim(data.correct ? 'correct' : 'wrong')
         setTimeout(() => setCardAnim(''), 400)
         setPhase('result')

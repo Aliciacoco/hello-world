@@ -9,12 +9,17 @@ type UploadPhase = 'idle' | 'extracting' | 'preview'
 interface IdiomQuestion {
   id: string
   word: string
+  answer?: string
   explanation: string
 }
 
 interface JudgeResult {
   correct: boolean
   feedback: string
+  referenceAnswer?: string
+  referenceExplanation?: string
+  _pts?: number
+  _balance?: number
 }
 
 export default function Idiom() {
@@ -35,7 +40,7 @@ export default function Idiom() {
   const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchQuestion = useCallback(async (force = false) => {
+  const fetchQuestion = useCallback(async (force = false, excludeId?: string) => {
     setLoadingQuestion(true)
     setError('')
     setInput('')
@@ -54,7 +59,10 @@ export default function Idiom() {
       }
     }
     try {
-      const res = await fetch('/api/bank/idiom/random')
+      const url = excludeId
+        ? `/api/bank/idiom/random?exclude=${encodeURIComponent(excludeId)}`
+        : '/api/bank/idiom/random'
+      const res = await fetch(url)
       if (res.status === 404) { setEmptyBank(true); return }
       if (!res.ok) throw new Error()
       const q = await res.json()
@@ -83,6 +91,11 @@ export default function Idiom() {
       if (!res.ok) throw new Error()
       const result: JudgeResult = await res.json()
       setJudgeResult(result)
+      if (result.correct && result._pts != null && result._balance != null) {
+        window.dispatchEvent(new CustomEvent('points-earned', {
+          detail: { amount: result._pts, balance: result._balance },
+        }))
+      }
       if (!result.correct) {
         fetch(`/api/bank/idiom/${question.id}/review`, {
           method: 'PATCH',
@@ -191,8 +204,15 @@ export default function Idiom() {
                       ? <p className={styles.correctAnswer}>答对了！</p>
                       : <p className={styles.wrongHint}>有点偏差，看看这个：</p>
                     }
+                    <div className={styles.referenceBox}>
+                      <p className={styles.referenceLabel}>{'\u53c2\u8003\u7b54\u6848'}</p>
+                      <p className={styles.referenceText}>{judgeResult.referenceAnswer || question.answer || question.explanation}</p>
+                      {(judgeResult.referenceExplanation || question.explanation) && (
+                        <p className={styles.explanation}>{judgeResult.referenceExplanation || question.explanation}</p>
+                      )}
+                    </div>
                     <p className={styles.explanation}>{judgeResult.feedback}</p>
-                    <button className={styles.btn} onClick={() => fetchQuestion(true)}>下一题</button>
+                    <button className={styles.btn} onClick={() => fetchQuestion(true, question.id)}>{'\u4e0b\u4e00\u9898'}</button>
                   </div>
                 )}
               </>

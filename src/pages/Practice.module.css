@@ -190,3 +190,29 @@
   margin: 0;
   line-height: 1.8;
 }
+
+
+.referenceBox {
+  width: 100%;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  box-sizing: border-box;
+}
+
+.referenceLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+}
+
+.referenceText {
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.75;
+  margin: 0 0 8px;
+}

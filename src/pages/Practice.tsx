@@ -4,7 +4,7 @@ import { saveWrongAnswer } from '../utils/storage'
 import { earnPoints } from '../utils/points'
 import styles from './Practice.module.css'
 
-type Phase = 'question' | 'wrong-reason' | 'loading' | 'explanation'
+type Phase = 'question' | 'correct' | 'wrong-reason' | 'loading' | 'explanation'
 
 export default function Practice() {
   const [question, setQuestion] = useState<Question>(() => generateQuestion())
@@ -34,7 +34,7 @@ export default function Practice() {
     if (userAnswer === correct) {
       window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: true, activity: 'practice' } }))
       setCardAnim('correct')
-      setTimeout(() => { setCardAnim(''); earnPoints(0.1, '排列组合答对'); nextQuestion() }, 360)
+      setTimeout(() => { setCardAnim(''); earnPoints(0.1, '排列组合答对'); setPhase('correct') }, 360)
     } else {
       window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: false, activity: 'practice' } }))
       setCardAnim('wrong')
@@ -105,6 +105,13 @@ export default function Practice() {
             />
             {error && <p className={styles.error}>{error}</p>}
             <button className={styles.btn} onClick={handleSubmitAnswer}>确认</button>
+          </div>
+        )}
+
+        {phase === 'correct' && (
+          <div className={styles.explanationGroup}>
+            <p className={styles.correctAnswer}>回答正确！答案是 {correct}</p>
+            <button className={styles.btn} onClick={nextQuestion}>下一题</button>
           </div>
         )}
 

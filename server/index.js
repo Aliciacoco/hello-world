@@ -344,6 +344,23 @@ function writeBank(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
+function selectPracticePool(bank, excludeId) {
+  const available = excludeId && bank.length > 1
+    ? bank.filter(q => String(q.id) !== String(excludeId))
+    : bank
+  const unpracticed = available.filter(q => !Array.isArray(q.reviews) || q.reviews.length === 0)
+  return unpracticed.length > 0 ? unpracticed : available
+}
+
+function createReviewRecord(body) {
+  const record = {
+    date: body.date || Date.now(),
+    userAnswer: body.userAnswer,
+  }
+  if (typeof body.correct === 'boolean') record.correct = body.correct
+  if (body.feedback) record.feedback = body.feedback
+  return record
+}
 // 修复 AI 重复输出选项前缀的问题，如 "A. A. 11" → "A. 11"
 function fixDuplicateOptionLetters(options) {
   if (!options) return options
@@ -433,7 +450,7 @@ app.get('/api/bank/math/random', (req, res) => {
   const bank = readBank(MATH_BANK_FILE)
   const choiceBank = bank.filter(hasChoiceOptions)
   if (choiceBank.length === 0) return res.status(404).json({ error: 'No choice questions available' })
-  const pool = choiceBank.length > 1 && req.query.exclude ? choiceBank.filter(q => String(q.id) !== String(req.query.exclude)) : choiceBank
+  const pool = selectPracticePool(choiceBank, req.query.exclude)
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -467,7 +484,7 @@ app.patch('/api/bank/math/:id/review', (req, res) => {
   const item = bank.find(q => q.id === req.params.id)
   if (!item) return res.status(404).json({ error: '题目不存在' })
   if (!item.reviews) item.reviews = []
-  item.reviews.push({ date: Date.now(), userAnswer: req.body.userAnswer })
+  item.reviews.push(createReviewRecord(req.body))
   writeBank(MATH_BANK_FILE, bank)
   res.json({ ok: true })
 })
@@ -476,7 +493,7 @@ app.patch('/api/bank/math/:id/review', (req, res) => {
 app.get('/api/bank/idiom/random', (req, res) => {
   const bank = readBank(IDIOM_BANK_FILE)
   if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => String(q.id) !== String(req.query.exclude)) : bank
+  const pool = selectPracticePool(bank, req.query.exclude)
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -509,7 +526,7 @@ app.patch('/api/bank/idiom/:id/review', (req, res) => {
   const item = bank.find(q => q.id === req.params.id)
   if (!item) return res.status(404).json({ error: '题目不存在' })
   if (!item.reviews) item.reviews = []
-  item.reviews.push({ date: Date.now(), userAnswer: req.body.userAnswer, feedback: req.body.feedback })
+  item.reviews.push(createReviewRecord(req.body))
   writeBank(IDIOM_BANK_FILE, bank)
   res.json({ ok: true })
 })
@@ -527,7 +544,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
     const bank = readBank(file)
     if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-    const pool = bank.length > 1 && req.query.exclude ? bank.filter(q => String(q.id) !== String(req.query.exclude)) : bank
+    const pool = selectPracticePool(bank, req.query.exclude)
     res.json(pool[Math.floor(Math.random() * pool.length)])
   })
 
@@ -565,7 +582,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
     const item = bank.find(q => q.id === req.params.id)
     if (!item) return res.status(404).json({ error: '题目不存在' })
     if (!item.reviews) item.reviews = []
-    item.reviews.push({ date: Date.now(), userAnswer: req.body.userAnswer })
+    item.reviews.push(createReviewRecord(req.body))
     writeBank(file, bank)
     res.json({ ok: true })
   })

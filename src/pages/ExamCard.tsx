@@ -92,6 +92,13 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     }
   }, [bankType])
 
+  const recordPractice = useCallback((item: BankQuestion, answer: string, correct: boolean) => {
+    fetch(`/api/bank/${bankType}/${item.id}/review`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userAnswer: answer, correct, date: Date.now() }),
+    }).catch(() => {})
+  }, [bankType])
   useEffect(() => {
     // 优先从 sessionStorage 恢复，避免切换页面时换题
     const saved = sessionStorage.getItem(`exam_q_${bankType}`)
@@ -134,6 +141,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         const data = await res.json()
         setIsCorrect(data.correct)
         setAiFeedback(data.feedback)
+        recordPractice(question, userAnswer.trim(), data.correct)
         window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: data.correct, activity: 'practice' } }))
         if (data.correct && data._pts != null && data._balance != null) {
           window.dispatchEvent(new CustomEvent('points-earned', {
@@ -143,6 +151,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         setCardAnim(data.correct ? 'correct' : 'wrong')
         setTimeout(() => setCardAnim(''), 400)
         setPhase('result')
+        if (data.correct) setTimeout(() => fetchQuestion(question.id), 500)
       } catch {
         setError('判断失败，请重试')
         setPhase('question')
@@ -153,17 +162,13 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     // 选择题：本地字符串对比
     const correct = userAnswer.trim().toUpperCase() === question.answer.trim().toUpperCase()
     setIsCorrect(correct)
+    recordPractice(question, userAnswer.trim(), correct)
     window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct, activity: 'practice' } }))
     setCardAnim(correct ? 'correct' : 'wrong')
     setTimeout(() => setCardAnim(''), 400)
-    if (!correct) {
-      fetch(`/api/bank/${bankType}/${question.id}/review`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userAnswer: userAnswer.trim(), date: Date.now() }),
-      }).catch(() => {})
-    } else {
+    if (correct) {
       earnPoints(pointsPerCorrect, `${subject}答对`)
+      setTimeout(() => fetchQuestion(question.id), 500)
     }
     setPhase('result')
   }

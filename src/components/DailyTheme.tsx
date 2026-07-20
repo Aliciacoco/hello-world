@@ -12,7 +12,6 @@ interface ThemeState {
   dateKey: string
   score: number
   unlocked: number
-  firstBonusClaimed: boolean
   completed: boolean
   images: Record<string, string>
 }
@@ -21,11 +20,6 @@ interface PointsEventDetail {
   amount: number
   balance?: number
   activity?: 'practice' | 'upload' | 'theme-bonus'
-}
-
-interface AnswerEventDetail {
-  correct: boolean
-  activity?: 'practice' | 'upload'
 }
 
 const CHAPTER_STEP = 2
@@ -43,7 +37,7 @@ function storageKey(dateKey: string) {
 }
 
 function createInitialState(dateKey: string): ThemeState {
-  return { dateKey, score: 0, unlocked: 0, firstBonusClaimed: false, completed: false, images: {} }
+  return { dateKey, score: 0, unlocked: 0, completed: false, images: {} }
 }
 
 function loadThemeState(dateKey: string): ThemeState {
@@ -56,7 +50,6 @@ function loadThemeState(dateKey: string): ThemeState {
       dateKey,
       score: Number(parsed.score) || 0,
       unlocked: Math.min(TOTAL_CHAPTERS, Number(parsed.unlocked) || 0),
-      firstBonusClaimed: Boolean(parsed.firstBonusClaimed),
       completed: Boolean(parsed.completed),
       images: parsed.images && typeof parsed.images === 'object' ? parsed.images : {},
     }
@@ -94,34 +87,11 @@ async function fetchChapterImage(figureName: string, chapter: ThemeChapter) {
   return data.url as string
 }
 
-async function awardThemeBonus(amount: number, reason: string) {
-  if (import.meta.env.DEV) {
-    emitPoints(amount, 'theme-bonus')
-    return
-  }
-
-  try {
-    const res = await fetch('/api/points/earn', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, reason }),
-    })
-    if (!res.ok) return
-    const data = await res.json()
-    window.dispatchEvent(new CustomEvent('points-earned', {
-      detail: { amount, balance: data.balance, activity: 'theme-bonus' },
-    }))
-  } catch {
-    // Bonus failure should not block answering questions.
-  }
-}
-
 export default function DailyTheme() {
   const dateKey = useMemo(() => getDateKey(), [])
   const figure = useMemo(() => getTodayFigure(), [])
   const [state, setState] = useState<ThemeState>(() => loadThemeState(dateKey))
   const [modal, setModal] = useState<ThemeModal>(null)
-  const [bonusText, setBonusText] = useState('')
 
   useEffect(() => { saveThemeState(state) }, [state])
 
@@ -175,26 +145,9 @@ export default function DailyTheme() {
       })
     }
 
-    const handleAnswer = (event: Event) => {
-      const detail = (event as CustomEvent<AnswerEventDetail>).detail
-      if (!detail || detail.activity === 'upload') return
-
-      setState(prev => {
-        if (!detail.correct || prev.firstBonusClaimed) return prev
-
-        setBonusText('今日初练 +2')
-        setTimeout(() => setBonusText(''), 1800)
-        awardThemeBonus(2, '今日首次练习奖励')
-
-        return { ...prev, firstBonusClaimed: true }
-      })
-    }
-
     window.addEventListener('points-earned', handlePoints)
-    window.addEventListener('answer-result', handleAnswer)
     return () => {
       window.removeEventListener('points-earned', handlePoints)
-      window.removeEventListener('answer-result', handleAnswer)
     }
   }, [figure])
 
@@ -202,12 +155,10 @@ export default function DailyTheme() {
     const fresh = createInitialState(dateKey)
     localStorage.removeItem(storageKey(dateKey))
     setModal(null)
-    setBonusText('')
     setState(fresh)
   }
 
   const simulateCorrect = () => {
-    window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: true, activity: 'practice' } }))
     emitPoints(1)
   }
 
@@ -257,7 +208,6 @@ export default function DailyTheme() {
           <button type="button" onClick={resetToday}>重置今日</button>
         </div>
       )}
-      {bonusText && <div className={styles.bonus}>{bonusText}</div>}
 
       {modal && (
         <div className={styles.overlay} onClick={e => { e.stopPropagation(); if (e.target === e.currentTarget) setModal(null) }}>

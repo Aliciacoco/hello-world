@@ -153,8 +153,11 @@ export const songStarsTheme: WeeklyTheme = {
   ],
 }
 
-export function getTodayFigure(date = new Date()) {
+export function getTodayFigureIndex(date = new Date()) {
   const day = date.getDay()
-  const index = day === 0 ? 6 : day - 1
-  return songStarsTheme.figures[index]
+  return day === 0 ? 6 : day - 1
+}
+
+export function getTodayFigure(date = new Date()) {
+  return songStarsTheme.figures[getTodayFigureIndex(date)]
 }

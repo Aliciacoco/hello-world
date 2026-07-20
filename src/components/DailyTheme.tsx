@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { getTodayFigure, songStarsTheme, type ThemeChapter } from '../data/songTheme'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { getTodayFigure, getTodayFigureIndex, songStarsTheme, type ThemeChapter } from '../data/songTheme'
 import styles from './DailyTheme.module.css'
 
 type ThemeModal =
@@ -13,7 +13,6 @@ interface ThemeState {
   score: number
   unlocked: number
   completed: boolean
-  images: Record<string, string>
 }
 
 interface PointsEventDetail {
@@ -37,7 +36,7 @@ function storageKey(dateKey: string) {
 }
 
 function createInitialState(dateKey: string): ThemeState {
-  return { dateKey, score: 0, unlocked: 0, completed: false, images: {} }
+  return { dateKey, score: 0, unlocked: 0, completed: false }
 }
 
 function loadThemeState(dateKey: string): ThemeState {
@@ -51,7 +50,6 @@ function loadThemeState(dateKey: string): ThemeState {
       score: Number(parsed.score) || 0,
       unlocked: Math.min(TOTAL_CHAPTERS, Number(parsed.unlocked) || 0),
       completed: Boolean(parsed.completed),
-      images: parsed.images && typeof parsed.images === 'object' ? parsed.images : {},
     }
   } catch {
     return createInitialState(dateKey)
@@ -68,7 +66,7 @@ function emitPoints(amount: number, activity: PointsEventDetail['activity'] = 'p
   }))
 }
 
-async function fetchChapterImage(figureName: string, chapter: ThemeChapter) {
+async function fetchChapterImage(figureIndex: number, figureName: string, chapterIndex: number, chapter: ThemeChapter) {
   const res = await fetch('/api/theme-image', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -79,6 +77,8 @@ async function fetchChapterImage(figureName: string, chapter: ThemeChapter) {
       importance: chapter.importance,
       detail: chapter.detail,
       visual: chapter.visual,
+      figureIndex,
+      chapterIndex,
     }),
   })
   if (!res.ok) throw new Error('image generation failed')
@@ -89,11 +89,25 @@ async function fetchChapterImage(figureName: string, chapter: ThemeChapter) {
 
 export default function DailyTheme() {
   const dateKey = useMemo(() => getDateKey(), [])
+  const figureIndex = useMemo(() => getTodayFigureIndex(), [])
   const figure = useMemo(() => getTodayFigure(), [])
   const [state, setState] = useState<ThemeState>(() => loadThemeState(dateKey))
   const [modal, setModal] = useState<ThemeModal>(null)
+  // 章节插画不存 localStorage，只存服务端；这里是运行时内存缓存，进页面时从服务端水合
+  const [images, setImages] = useState<Record<string, string>>({})
+  const imagesRef = useRef(images)
+  useEffect(() => { imagesRef.current = images }, [images])
 
   useEffect(() => { saveThemeState(state) }, [state])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/theme-image/${figureIndex}`)
+      .then(res => (res.ok ? res.json() : {}))
+      .then((data: Record<string, string>) => { if (!cancelled && data && typeof data === 'object') setImages(data) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [figureIndex])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -116,15 +130,12 @@ export default function DailyTheme() {
         if (nextUnlocked > prev.unlocked) {
           const chapter = figure.chapters[nextUnlocked - 1]
           if (chapter) {
-            const cachedImage = prev.images[String(nextUnlocked)]
+            const cachedImage = imagesRef.current[String(nextUnlocked)]
             setModal({ type: 'chapter', chapter, index: nextUnlocked, imageUrl: cachedImage, imageLoading: !cachedImage })
             if (!cachedImage) {
-              fetchChapterImage(figure.name, chapter)
+              fetchChapterImage(figureIndex, figure.name, nextUnlocked, chapter)
                 .then(imageUrl => {
-                  setState(current => ({
-                    ...current,
-                    images: { ...current.images, [String(nextUnlocked)]: imageUrl },
-                  }))
+                  setImages(current => ({ ...current, [String(nextUnlocked)]: imageUrl }))
                   setModal(current => current?.type === 'chapter' && current.index === nextUnlocked
                     ? { ...current, imageUrl, imageLoading: false }
                     : current)
@@ -149,7 +160,7 @@ export default function DailyTheme() {
     return () => {
       window.removeEventListener('points-earned', handlePoints)
     }
-  }, [figure])
+  }, [figure, figureIndex])
 
   const resetToday = () => {
     const fresh = createInitialState(dateKey)
@@ -222,7 +233,7 @@ export default function DailyTheme() {
               <div className={styles.galleryScroll}>
                 {unlockedChapters.map((chapter, index) => {
                   const chapterIndex = index + 1
-                  const imageUrl = state.images[String(chapterIndex)]
+                  const imageUrl = images[String(chapterIndex)]
                   return (
                     <article key={chapter.title} className={styles.galleryPage}>
                       <div className={styles.galleryImage}>

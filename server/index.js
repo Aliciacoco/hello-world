@@ -10,6 +10,11 @@ const PORT = process.env.PORT || 3001
 const DATA_DIR = process.env.DATA_DIR || __dirname
 const DB_FILE = path.join(DATA_DIR, 'wrong_answers.json')
 const QWEN_API_KEY = process.env.QWEN_API_KEY || 'sk-f69ceab683b54d8aaee09f19b947e38f'
+// 十章图集生成的插画：下载后落盘存本地，THEME_IMAGE_MAP_FILE 记录 "人物序号-章节序号" -> 图片URL 的映射，
+// 避免依赖通义千问返回的临时链接（会过期），也避免每次都重新生成同一张图。
+const THEME_IMAGES_DIR = path.join(DATA_DIR, 'theme-images')
+const THEME_IMAGE_MAP_FILE = path.join(DATA_DIR, 'theme_images.json')
+if (!fs.existsSync(THEME_IMAGES_DIR)) fs.mkdirSync(THEME_IMAGES_DIR, { recursive: true })
 
 app.use(cors())
 app.use(express.json())
@@ -249,6 +254,26 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function readThemeImageMap() {
+  try { return JSON.parse(fs.readFileSync(THEME_IMAGE_MAP_FILE, 'utf8')) } catch { return {} }
+}
+
+function writeThemeImageMap(map) {
+  fs.writeFileSync(THEME_IMAGE_MAP_FILE, JSON.stringify(map, null, 2))
+}
+
+function downloadImage(url, destPath) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      if (res.statusCode >= 400) { reject(new Error(`图片下载失败: ${res.statusCode}`)); return }
+      const file = fs.createWriteStream(destPath)
+      res.pipe(file)
+      file.on('finish', () => file.close(() => resolve()))
+      file.on('error', (err) => { fs.unlink(destPath, () => {}); reject(err) })
+    }).on('error', reject)
+  })
+}
+
 async function generateThemeImage({ figure, chapter, fact, importance, detail, visual }) {
   const prompt = `高质量历史绘本插画，中国宋代背景，细腻线稿，柔和淡彩，宣纸质感，色彩低饱和。人物：${figure}。章节：${chapter}。史实依据：${fact}。必须按这个具体画面来画：${visual || ''}。如果没有具体画面，则让人物处在与该历史节点直接相关的地点，正在进行能体现事件的具体动作，并加入可识别事件的物件或环境。人物神情克制，服饰朴素，构图有留白。不要写实照片感，不要影视剧海报感，不要卡通萌化，不要近距离大头照，不要现代物品，不要画面文字，不要两个人站着摆拍，不要通用古装人物肖像，不要与章节无关的山水背景。辅助理解：${detail || importance}`
   const create = await dashscopeRequest('/api/v1/services/aigc/text2image/image-synthesis', 'POST', {
@@ -279,15 +304,47 @@ async function generateThemeImage({ figure, chapter, fact, importance, detail, v
 }
 
 app.post('/api/theme-image', async (req, res) => {
-  const { figure, chapter, fact, importance, detail, visual } = req.body
+  const { figure, chapter, fact, importance, detail, visual, figureIndex, chapterIndex } = req.body
   if (!figure || !chapter || !fact) return res.status(400).json({ error: 'missing params' })
+
+  const cacheKey = figureIndex != null && chapterIndex != null ? `${figureIndex}-${chapterIndex}` : null
+  if (cacheKey) {
+    const map = readThemeImageMap()
+    const cached = map[cacheKey]
+    if (cached && fs.existsSync(path.join(THEME_IMAGES_DIR, path.basename(cached)))) {
+      return res.json({ url: cached })
+    }
+  }
+
   try {
-    const url = await generateThemeImage({ figure, chapter, fact, importance: importance || '', detail: detail || '', visual: visual || '' })
+    const remoteUrl = await generateThemeImage({ figure, chapter, fact, importance: importance || '', detail: detail || '', visual: visual || '' })
+    let url = remoteUrl
+    if (cacheKey) {
+      const filename = `${cacheKey}.jpg`
+      await downloadImage(remoteUrl, path.join(THEME_IMAGES_DIR, filename))
+      url = `/theme-images/${filename}`
+      const map = readThemeImageMap()
+      map[cacheKey] = url
+      writeThemeImageMap(map)
+    }
     res.json({ url })
   } catch (e) {
     res.status(500).json({ error: e.message || 'image generation failed' })
   }
 })
+
+// 拉取某个人物已经生成好的全部章节插画（{ chapterIndex: url }），供前端水合图集，不再依赖浏览器本地存储
+app.get('/api/theme-image/:figureIndex', (req, res) => {
+  const map = readThemeImageMap()
+  const prefix = `${req.params.figureIndex}-`
+  const result = {}
+  Object.keys(map).forEach(key => {
+    if (key.startsWith(prefix)) result[key.slice(prefix.length)] = map[key]
+  })
+  res.json(result)
+})
+
+app.use('/theme-images', express.static(THEME_IMAGES_DIR))
 
 const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格按JSON格式输出，不要有多余文字：
 {"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析内容"}`

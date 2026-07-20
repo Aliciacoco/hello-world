@@ -237,7 +237,6 @@ const IDIOM_BANK_FILE = path.join(DATA_DIR, 'idiom_bank.json')
 const JUDGEMENT_BANK_FILE = path.join(DATA_DIR, 'judgement_bank.json')
 const ANALYSIS_BANK_FILE = path.join(DATA_DIR, 'analysis_bank.json')
 const CHANGSHI_BANK_FILE = path.join(DATA_DIR, 'changshi_bank.json')
-const ZHENGZHI_BANK_FILE = path.join(DATA_DIR, 'zhengzhi_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
 
 function readPoints() {
@@ -783,65 +782,6 @@ app.delete('/api/shenlun/:id', (req, res) => {
   res.json({ ok: true })
 })
 
-// ——— 政治理论 flashcard 模块 ———
-function readZhengzhi() {
-  try { return JSON.parse(fs.readFileSync(ZHENGZHI_BANK_FILE, 'utf8')) } catch { return [] }
-}
-function writeZhengzhi(data) {
-  fs.writeFileSync(ZHENGZHI_BANK_FILE, JSON.stringify(data, null, 2))
-}
-
-app.get('/api/bank/zhengzhi/random', (req, res) => {
-  const bank = readZhengzhi()
-  if (bank.length === 0) return res.status(404).json({ error: '卡片库为空，请先上传知识点' })
-  const pool = bank.length > 1 && req.query.exclude ? bank.filter(c => String(c.id) !== String(req.query.exclude)) : bank
-  res.json(pool[Math.floor(Math.random() * pool.length)])
-})
-
-app.get('/api/bank/zhengzhi', (req, res) => {
-  res.json(readZhengzhi())
-})
-
-const ZHENGZHI_EXTRACT_PROMPT = `请从以下政治理论内容中提取知识点，每个知识点输出一张卡片，严格按JSON数组格式输出，不要有多余文字：
-[{"front":"知识点标题或问题","back":"详细解释、含义或记忆要点"}]
-最多提取5张卡片，内容不宜太长，back 不超过100字。`
-
-app.post('/api/bank/zhengzhi', async (req, res) => {
-  const { text, image } = req.body
-  if (!text && !image) return res.status(400).json({ error: '请提供文字或图片' })
-  try {
-    let content
-    if (image) {
-      content = await callQwenVL(ZHENGZHI_EXTRACT_PROMPT, image)
-    } else {
-      content = await callQwen([{ role: 'user', content: `${ZHENGZHI_EXTRACT_PROMPT}\n\n内容：\n${text}` }])
-    }
-    const cards = JSON.parse(content.trim().replace(/```json|```/g, ''))
-    const bank = readZhengzhi()
-    const newItems = (Array.isArray(cards) ? cards : [cards]).map(c => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      front: c.front || '',
-      back: c.back || '',
-      reviews: [],
-    }))
-    bank.push(...newItems)
-    writeZhengzhi(bank)
-    const newBalance = earnPoints(newItems.length * 0.5, `录入${newItems.length}张政治理论卡片`)
-    res.json({ items: newItems, _pts: newItems.length * 0.5, _balance: newBalance })
-  } catch (e) {
-    res.status(500).json({ error: e.message })
-  }
-})
-
-app.delete('/api/bank/zhengzhi/:id', (req, res) => {
-  const bank = readZhengzhi()
-  const filtered = bank.filter(c => c.id !== req.params.id)
-  if (filtered.length === bank.length) return res.status(404).json({ error: '卡片不存在' })
-  writeZhengzhi(filtered)
-  res.json({ ok: true })
-})
-
-// 生产环境：服务 Vite 打包好的前端静态文件
 const FRONTEND_DIST = path.join(__dirname, '../dist')
 if (fs.existsSync(FRONTEND_DIST)) {
   app.use(express.static(FRONTEND_DIST))
@@ -852,6 +792,30 @@ if (fs.existsSync(FRONTEND_DIST)) {
 }
 
 // 启动时清理题库中的重复选项前缀
+
+function cleanupRemovedFeatureData() {
+  const removedFiles = ['zhengzhi_bank.json']
+  removedFiles.forEach(name => {
+    try { fs.rmSync(path.join(DATA_DIR, name), { force: true }) } catch {}
+  })
+
+  try {
+    const data = readPoints()
+    const keyword = '\u653f\u6cbb\u7406\u8bba'
+    let delta = 0
+    const history = Array.isArray(data.history) ? data.history : []
+    data.history = history.filter(entry => {
+      const hit = String(entry.reason || '').includes(keyword)
+      if (hit) delta += Number(entry.amount || 0)
+      return !hit
+    })
+    if (delta) {
+      data.balance = Math.round((Number(data.balance || 0) - delta) * 100) / 100
+      writePoints(data)
+    }
+  } catch {}
+}
+cleanupRemovedFeatureData()
 cleanupBankOptions()
 normalizeMathBankChoices()
 

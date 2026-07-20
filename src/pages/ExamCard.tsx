@@ -151,7 +151,6 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         setCardAnim(data.correct ? 'correct' : 'wrong')
         setTimeout(() => setCardAnim(''), 400)
         setPhase('result')
-        if (data.correct) setTimeout(() => fetchQuestion(question.id), 500)
       } catch {
         setError('判断失败，请重试')
         setPhase('question')
@@ -168,7 +167,6 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     setTimeout(() => setCardAnim(''), 400)
     if (correct) {
       earnPoints(pointsPerCorrect, `${subject}答对`)
-      setTimeout(() => fetchQuestion(question.id), 500)
     }
     setPhase('result')
   }

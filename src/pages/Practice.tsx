@@ -32,9 +32,11 @@ export default function Practice() {
     }
     const correct = calculateAnswer(question)
     if (userAnswer === correct) {
+      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: true, activity: 'practice' } }))
       setCardAnim('correct')
       setTimeout(() => { setCardAnim(''); earnPoints(0.1, '排列组合答对'); nextQuestion() }, 360)
     } else {
+      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: false, activity: 'practice' } }))
       setCardAnim('wrong')
       setTimeout(() => setCardAnim(''), 400)
       setError('')

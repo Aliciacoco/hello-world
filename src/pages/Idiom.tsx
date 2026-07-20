@@ -91,9 +91,10 @@ export default function Idiom() {
       if (!res.ok) throw new Error()
       const result: JudgeResult = await res.json()
       setJudgeResult(result)
+      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: result.correct, activity: 'practice' } }))
       if (result.correct && result._pts != null && result._balance != null) {
         window.dispatchEvent(new CustomEvent('points-earned', {
-          detail: { amount: result._pts, balance: result._balance },
+          detail: { amount: result._pts, balance: result._balance, activity: 'practice' },
         }))
       }
       if (!result.correct) {
@@ -135,7 +136,7 @@ export default function Idiom() {
       const raw = await res.json()
       if (raw._pts != null && raw._balance != null) {
         window.dispatchEvent(new CustomEvent('points-earned', {
-          detail: { amount: raw._pts, balance: raw._balance },
+          detail: { amount: raw._pts, balance: raw._balance, activity: 'upload' },
         }))
       }
       const { _pts: _p, _balance: _b, ...extracted } = raw

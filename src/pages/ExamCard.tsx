@@ -134,9 +134,10 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         const data = await res.json()
         setIsCorrect(data.correct)
         setAiFeedback(data.feedback)
+        window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: data.correct, activity: 'practice' } }))
         if (data.correct && data._pts != null && data._balance != null) {
           window.dispatchEvent(new CustomEvent('points-earned', {
-            detail: { amount: data._pts, balance: data._balance },
+            detail: { amount: data._pts, balance: data._balance, activity: 'practice' },
           }))
         }
         setCardAnim(data.correct ? 'correct' : 'wrong')
@@ -152,6 +153,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     // 选择题：本地字符串对比
     const correct = userAnswer.trim().toUpperCase() === question.answer.trim().toUpperCase()
     setIsCorrect(correct)
+    window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct, activity: 'practice' } }))
     setCardAnim(correct ? 'correct' : 'wrong')
     setTimeout(() => setCardAnim(''), 400)
     if (!correct) {
@@ -193,7 +195,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
       // 触发积分 toast（服务端已写分，这里只触发前端通知）
       if (raw._pts != null && raw._balance != null) {
         window.dispatchEvent(new CustomEvent('points-earned', {
-          detail: { amount: raw._pts, balance: raw._balance },
+          detail: { amount: raw._pts, balance: raw._balance, activity: 'upload' },
         }))
       }
       const { _pts: _p, _balance: _b, ...item } = raw

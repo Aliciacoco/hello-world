@@ -209,6 +209,86 @@ function callQwenVL(prompt, base64Image) {
   })
 }
 
+
+function dashscopeRequest(pathname, method, payload) {
+  return new Promise((resolve, reject) => {
+    const body = payload ? JSON.stringify(payload) : ''
+    const req = https.request({
+      hostname: 'dashscope.aliyuncs.com',
+      path: pathname,
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${QWEN_API_KEY}`,
+        'X-DashScope-Async': 'enable',
+        ...(body ? { 'Content-Length': Buffer.byteLength(body) } : {}),
+      },
+    }, (res) => {
+      let data = ''
+      res.on('data', chunk => { data += chunk })
+      res.on('end', () => {
+        try {
+          const json = data ? JSON.parse(data) : {}
+          if (res.statusCode >= 400) {
+            reject(new Error(json.message || json.code || `DashScope ${res.statusCode}`))
+            return
+          }
+          resolve(json)
+        } catch (err) {
+          reject(err)
+        }
+      })
+    })
+    req.on('error', reject)
+    if (body) req.write(body)
+    req.end()
+  })
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function generateThemeImage({ figure, chapter, fact, importance, detail, visual }) {
+  const prompt = `高质量历史绘本插画，中国宋代背景，细腻线稿，柔和淡彩，宣纸质感，色彩低饱和。人物：${figure}。章节：${chapter}。史实依据：${fact}。必须按这个具体画面来画：${visual || ''}。如果没有具体画面，则让人物处在与该历史节点直接相关的地点，正在进行能体现事件的具体动作，并加入可识别事件的物件或环境。人物神情克制，服饰朴素，构图有留白。不要写实照片感，不要影视剧海报感，不要卡通萌化，不要近距离大头照，不要现代物品，不要画面文字，不要两个人站着摆拍，不要通用古装人物肖像，不要与章节无关的山水背景。辅助理解：${detail || importance}`
+  const create = await dashscopeRequest('/api/v1/services/aigc/text2image/image-synthesis', 'POST', {
+    model: 'wanx2.1-t2i-turbo',
+    input: { prompt },
+    parameters: {
+      size: '1024*1024',
+      n: 1,
+    },
+  })
+  const taskId = create.output?.task_id
+  if (!taskId) throw new Error('missing image task id')
+
+  for (let i = 0; i < 18; i++) {
+    await sleep(2500)
+    const task = await dashscopeRequest(`/api/v1/tasks/${taskId}`, 'GET')
+    const status = task.output?.task_status
+    if (status === 'SUCCEEDED') {
+      const url = task.output?.results?.[0]?.url
+      if (!url) throw new Error('missing generated image url')
+      return url
+    }
+    if (status === 'FAILED' || status === 'CANCELED') {
+      throw new Error(task.output?.message || 'image generation failed')
+    }
+  }
+  throw new Error('image generation timeout')
+}
+
+app.post('/api/theme-image', async (req, res) => {
+  const { figure, chapter, fact, importance, detail, visual } = req.body
+  if (!figure || !chapter || !fact) return res.status(400).json({ error: 'missing params' })
+  try {
+    const url = await generateThemeImage({ figure, chapter, fact, importance: importance || '', detail: detail || '', visual: visual || '' })
+    res.json({ url })
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'image generation failed' })
+  }
+})
+
 const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格按JSON格式输出，不要有多余文字：
 {"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析内容"}`
 

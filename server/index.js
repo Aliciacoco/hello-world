@@ -423,11 +423,12 @@ function parseJsonSafe(text) {
 }
 // 根据提示词生成图片并保存到本地路径（供 explore 功能使用）
 async function generateImageFromPrompt(prompt, destPath) {
-  // 强制追加风格后缀，防止 AI 生成的 prompt 风格不稳定（写实/动漫混杂）
-  const styledPrompt = `${prompt}, Chinese ink wash painting style, gongbi fine brushwork, traditional Chinese watercolor, muted tones, rice paper texture, no photorealism, no anime, no 3D render, no photography`
+  // 风格前置（wanx 对靠前内容权重更高）+ negative_prompt 单独传，效果比写在正文里强
+  const styledPrompt = `中国工笔画，古风水墨淡彩，宣纸质感，细腻线描，${prompt}`
+  const negativePrompt = 'photorealistic, anime, cartoon, 3D render, CGI, photography, modern style, digital art, oil painting, western art style, realistic portrait'
   const create = await dashscopeRequest('/api/v1/services/aigc/text2image/image-synthesis', 'POST', {
     model: 'wanx2.1-t2i-turbo',
-    input: { prompt: styledPrompt },
+    input: { prompt: styledPrompt, negative_prompt: negativePrompt },
     parameters: { size: '1024*1024', n: 1 },
   })
   const taskId = create.output?.task_id
@@ -543,13 +544,13 @@ app.post('/api/explore/confirm', async (req, res) => {
       content: `历史人物：${figure}
 背景：${dateContext}
 
-请生成一个这个人物的代表性场景，并在场景中设计3-4个有趣的可探索线索点。线索要和这个人物的生平、著作、事迹相关，位置要分散在画面各处（用百分比表示）。
+请生成一个这个人物的代表性场景，并在场景中设计3个有趣的可探索线索点。线索要和这个人物的生平、著作、事迹相关，位置要分散在画面各处，y坐标尽量在20-70之间（避开画面底部文字区）。
 
 返回严格JSON，不要有多余文字：
-{"narration":"场景旁白，2-3句生动描述当前画面，80字以内","imagePrompt":"英文文生图提示词，中国古风工笔画，具体描述场景中可见的人物、道具、环境，确保线索物品在画面中清晰可见，100词以内","clues":[{"id":"英文小写id（如juhua/nanshan）","name":"线索名称2-4字","x":图片中横向位置百分比数字,"y":图片中纵向位置百分比数字,"hint":"鼠标悬停时显示的一句话，描述这个线索"}]}`,
+{"narration":"场景旁白，2-3句生动描述当前画面，80字以内","imagePrompt":"英文文生图提示词，中国古风工笔画，具体描述场景中可见的人物、道具、环境，确保3个线索物品在画面中清晰可见，100词以内","clues":[{"id":"英文小写id（如juhua/nanshan）","name":"线索名称2-4字","x":横向百分比,"y":20到70之间的数字,"hint":"悬停提示一句话"},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."}]}`,
     }], 800)
     const sceneJson = parseJsonSafe(sceneContent)
-    if (!sceneJson || !sceneJson.narration || !Array.isArray(sceneJson.clues)) {
+    if (!sceneJson || !sceneJson.narration || !Array.isArray(sceneJson.clues) || sceneJson.clues.length === 0) {
       return res.status(500).json({ error: '场景生成失败，请重试' })
     }
 
@@ -673,13 +674,13 @@ app.post('/api/explore/clue', async (req, res) => {
 当前场景旁白：${parentScene.narration}
 玩家点击了线索「${clue.name}」（${clue.hint}）
 
-请生成探索这个线索后的新场景，深入挖掘线索背后的历史故事和文化内涵。同样要设计3-4个新的可探索线索点。
+请生成探索这个线索后的新场景，深入挖掘线索背后的历史故事和文化内涵。必须设计3个新的可探索线索点，线索要分散在画面各处，y坐标尽量在20-70之间（避开画面底部文字区）。
 
 返回严格JSON，不要有多余文字：
-{"narration":"深入探索后的旁白，讲述线索背后的历史故事和文化内涵，150字以内，用讲故事的语气","imagePrompt":"英文文生图提示词，聚焦这个线索相关的具体画面，中国古风工笔画，100词以内","clues":[{"id":"英文小写id","name":"线索名称2-4字","x":数字,"y":数字,"hint":"悬停提示一句话"}]}`,
+{"narration":"深入探索后的旁白，讲述线索背后的历史故事和文化内涵，150字以内，用讲故事的语气","imagePrompt":"英文文生图提示词，聚焦这个线索相关的具体画面，中国古风工笔画，确保3个线索物品在画面中清晰可见，100词以内","clues":[{"id":"英文小写id","name":"线索名称2-4字","x":数字,"y":20到70之间的数字,"hint":"悬停提示一句话"},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."}]}`,
     }], 900)
     const childJson = parseJsonSafe(childContent)
-    if (!childJson || !childJson.narration || !Array.isArray(childJson.clues)) {
+    if (!childJson || !childJson.narration || !Array.isArray(childJson.clues) || childJson.clues.length === 0) {
       return res.status(500).json({ error: '子场景生成失败' })
     }
 

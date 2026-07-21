@@ -3,6 +3,7 @@ const cors = require('cors')
 const fs = require('fs')
 const path = require('path')
 const https = require('https')
+const http = require('http')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -15,6 +16,10 @@ const QWEN_API_KEY = process.env.QWEN_API_KEY || 'sk-f69ceab683b54d8aaee09f19b94
 const THEME_IMAGES_DIR = path.join(DATA_DIR, 'theme-images')
 const THEME_IMAGE_MAP_FILE = path.join(DATA_DIR, 'theme_images.json')
 if (!fs.existsSync(THEME_IMAGES_DIR)) fs.mkdirSync(THEME_IMAGES_DIR, { recursive: true })
+
+const EXPLORE_DATA_FILE = path.join(DATA_DIR, 'explore_data.json')
+const EXPLORE_IMAGES_DIR = path.join(DATA_DIR, 'explore-images')
+if (!fs.existsSync(EXPLORE_IMAGES_DIR)) fs.mkdirSync(EXPLORE_IMAGES_DIR, { recursive: true })
 
 app.use(cors())
 app.use(express.json())
@@ -152,15 +157,13 @@ app.post('/api/idiom/judge', async (req, res) => {
   try {
     const content = await callQwen([{
       role: 'user',
-      content: `You are grading a Chinese idiom meaning answer.
-Idiom: ${word}
-Reference answer: ${stdAnswer || '(none)'}
-Reference explanation: ${stdExplanation || '(none)'}
-Student answer: ${answer}
+      content: `成语：${word}
+参考答案：${stdAnswer || '（无）'}
+参考解析：${stdExplanation || '（无）'}
+学生回答：${answer}
 
-Grade against the reference meaning first. Do not invent a misunderstanding. Do not use rhetorical guessing phrases. If the student's answer misses the idiom object or direction, mark it wrong and explain plainly. For example, if the idiom means an arrow has reached the end of its force, an answer about a strong person reaching the final moment is wrong.
-Return strict JSON only. Set correct to true or false. Feedback must be concise Simplified Chinese, under 80 Chinese characters.
-{"correct":false,"feedback":"..."}`,
+你是一个随和的成语老师。判断原则：以参考答案为准，学生答出了核心含义就算对，不要求措辞与参考完全一致；只有答错了方向、望文生义或完全偏离才算错，表述不够完整但方向对也可以给对。不要自己发明含义，严格按参考答案评判。先说"答对了"或"答错了"，再一两句话点出关键或纠错，80字以内，聊天语气，不用列表。
+格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
     }])
     const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
     let newBalance = null
@@ -262,15 +265,96 @@ function writeThemeImageMap(map) {
   fs.writeFileSync(THEME_IMAGE_MAP_FILE, JSON.stringify(map, null, 2))
 }
 
-function downloadImage(url, destPath) {
+function isValidThemeImageFile(filePath) {
+  try {
+    const stat = fs.statSync(filePath)
+    if (stat.size < 128) return false
+    const fd = fs.openSync(filePath, 'r')
+    const header = Buffer.alloc(12)
+    fs.readSync(fd, header, 0, header.length, 0)
+    fs.closeSync(fd)
+    const isJpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+    const isPng = header.slice(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+    const isWebp = header.slice(0, 4).toString('ascii') === 'RIFF' && header.slice(8, 12).toString('ascii') === 'WEBP'
+    return isJpeg || isPng || isWebp
+  } catch {
+    return false
+  }
+}
+
+function getCachedThemeImagePath(cachedUrl) {
+  if (!cachedUrl || !cachedUrl.startsWith('/theme-images/')) return null
+  const filename = path.basename(cachedUrl)
+  return path.join(THEME_IMAGES_DIR, filename)
+}
+
+function removeThemeImageCache(map, cacheKey) {
+  const cachedPath = getCachedThemeImagePath(map[cacheKey])
+  if (cachedPath) fs.unlink(cachedPath, () => {})
+  delete map[cacheKey]
+  writeThemeImageMap(map)
+}
+
+function downloadImage(url, destPath, redirectCount = 0) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      if (res.statusCode >= 400) { reject(new Error(`图片下载失败: ${res.statusCode}`)); return }
-      const file = fs.createWriteStream(destPath)
+    if (redirectCount > 5) {
+      reject(new Error('图片下载重定向次数过多'))
+      return
+    }
+
+    let parsed
+    try {
+      parsed = new URL(url)
+    } catch {
+      reject(new Error('图片下载地址无效'))
+      return
+    }
+    const client = parsed.protocol === 'http:' ? http : https
+    const request = client.get(parsed, (res) => {
+      const statusCode = res.statusCode || 0
+      const location = res.headers.location
+      if (statusCode >= 300 && statusCode < 400 && location) {
+        res.resume()
+        const nextUrl = new URL(location, parsed).toString()
+        downloadImage(nextUrl, destPath, redirectCount + 1).then(resolve).catch(reject)
+        return
+      }
+
+      if (statusCode >= 400) {
+        res.resume()
+        reject(new Error(`图片下载失败: ${statusCode}`))
+        return
+      }
+
+      const contentType = String(res.headers['content-type'] || '')
+      if (contentType && !contentType.startsWith('image/')) {
+        res.resume()
+        reject(new Error(`图片下载返回了非图片内容: ${contentType}`))
+        return
+      }
+
+      const tempPath = `${destPath}.tmp-${Date.now()}`
+      const file = fs.createWriteStream(tempPath)
       res.pipe(file)
-      file.on('finish', () => file.close(() => resolve()))
-      file.on('error', (err) => { fs.unlink(destPath, () => {}); reject(err) })
-    }).on('error', reject)
+      file.on('finish', () => {
+        file.close(() => {
+          if (!isValidThemeImageFile(tempPath)) {
+            fs.unlink(tempPath, () => {})
+            reject(new Error('图片文件无效'))
+            return
+          }
+          fs.rename(tempPath, destPath, err => {
+            if (err) reject(err)
+            else resolve()
+          })
+        })
+      })
+      file.on('error', (err) => { fs.unlink(tempPath, () => {}); reject(err) })
+    })
+    request.on('error', reject)
+    request.setTimeout(60000, () => {
+      request.destroy(new Error('图片下载超时'))
+    })
   })
 }
 
@@ -303,6 +387,53 @@ async function generateThemeImage({ figure, chapter, fact, importance, detail, v
   throw new Error('image generation timeout')
 }
 
+// ——— 探索功能辅助 ———
+function readExploreData() {
+  try { return JSON.parse(fs.readFileSync(EXPLORE_DATA_FILE, 'utf8')) } catch { return {} }
+}
+function writeExploreData(data) {
+  fs.writeFileSync(EXPLORE_DATA_FILE, JSON.stringify(data, null, 2))
+}
+function calcNextThreshold(balance) {
+  // 向上取到下一个10的倍数：35→40, 40→50, 0→10
+  return Math.floor(balance / 10) * 10 + 10
+}
+function getTodayStr() {
+  const d = new Date()
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+function parseJsonSafe(text) {
+  try { return JSON.parse(text.trim().replace(/```json|```/g, '')) } catch { return null }
+}
+// 根据提示词生成图片并保存到本地路径（供 explore 功能使用）
+async function generateImageFromPrompt(prompt, destPath) {
+  const create = await dashscopeRequest('/api/v1/services/aigc/text2image/image-synthesis', 'POST', {
+    model: 'wanx2.1-t2i-turbo',
+    input: { prompt },
+    parameters: { size: '1024*1024', n: 1 },
+  })
+  const taskId = create.output?.task_id
+  if (!taskId) throw new Error('missing image task id')
+  for (let i = 0; i < 18; i++) {
+    await sleep(2500)
+    const task = await dashscopeRequest(`/api/v1/tasks/${taskId}`, 'GET')
+    const status = task.output?.task_status
+    if (status === 'SUCCEEDED') {
+      const url = task.output?.results?.[0]?.url
+      if (!url) throw new Error('missing generated image url')
+      await downloadImage(url, destPath)
+      return
+    }
+    if (status === 'FAILED' || status === 'CANCELED') {
+      throw new Error(task.output?.message || 'image generation failed')
+    }
+  }
+  throw new Error('image generation timeout')
+}
+
 app.post('/api/theme-image', async (req, res) => {
   const { figure, chapter, fact, importance, detail, visual, figureIndex, chapterIndex } = req.body
   if (!figure || !chapter || !fact) return res.status(400).json({ error: 'missing params' })
@@ -311,9 +442,11 @@ app.post('/api/theme-image', async (req, res) => {
   if (cacheKey) {
     const map = readThemeImageMap()
     const cached = map[cacheKey]
-    if (cached && fs.existsSync(path.join(THEME_IMAGES_DIR, path.basename(cached)))) {
+    const cachedPath = getCachedThemeImagePath(cached)
+    if (cachedPath && isValidThemeImageFile(cachedPath)) {
       return res.json({ url: cached })
     }
+    if (cached) removeThemeImageCache(map, cacheKey)
   }
 
   try {
@@ -338,13 +471,187 @@ app.get('/api/theme-image/:figureIndex', (req, res) => {
   const map = readThemeImageMap()
   const prefix = `${req.params.figureIndex}-`
   const result = {}
+  let changed = false
   Object.keys(map).forEach(key => {
-    if (key.startsWith(prefix)) result[key.slice(prefix.length)] = map[key]
+    if (!key.startsWith(prefix)) return
+    const imagePath = getCachedThemeImagePath(map[key])
+    if (imagePath && isValidThemeImageFile(imagePath)) {
+      result[key.slice(prefix.length)] = map[key]
+    } else {
+      delete map[key]
+      changed = true
+    }
   })
+  if (changed) writeThemeImageMap(map)
   res.json(result)
 })
 
 app.use('/theme-images', express.static(THEME_IMAGES_DIR))
+app.use('/explore-images', express.static(EXPLORE_IMAGES_DIR))
+
+// ——— 每日探索模块 ———
+app.post('/api/explore/preview', async (req, res) => {
+  const today = getTodayStr()
+  try {
+    const content = await callQwen([{
+      role: 'user',
+      content: `今天是${today}。请推荐一位与今日有历史关联的中国历史人物（生卒日、重要事件日、节气相关人物等），每次可以不同，可以随机一些。返回严格JSON，不要有多余文字：
+{"figure":"人物姓名","dateContext":"为什么今天和此人有关，1-2句生动有趣的描述","imagePrompt":"英文文生图提示词，中国古风工笔画/水墨画风格，包含人物、具体道具、环境细节，80词以内"}`,
+    }], 600)
+    const json = parseJsonSafe(content)
+    if (!json || !json.figure) return res.status(500).json({ error: 'AI返回格式错误' })
+    res.json(json)
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/explore/confirm', async (req, res) => {
+  const allData = readExploreData()
+  const { figure, dateContext, imagePrompt } = req.body
+  if (!figure || !dateContext) return res.status(400).json({ error: '缺少人物信息' })
+
+  try {
+    // 第一步：生成根场景旁白 + 线索坐标
+    const sceneContent = await callQwen([{
+      role: 'user',
+      content: `历史人物：${figure}
+背景：${dateContext}
+
+请生成一个这个人物的代表性场景，并在场景中设计3-4个有趣的可探索线索点。线索要和这个人物的生平、著作、事迹相关，位置要分散在画面各处（用百分比表示）。
+
+返回严格JSON，不要有多余文字：
+{"narration":"场景旁白，2-3句生动描述当前画面，80字以内","imagePrompt":"英文文生图提示词，中国古风工笔画，具体描述场景中可见的人物、道具、环境，确保线索物品在画面中清晰可见，100词以内","clues":[{"id":"英文小写id（如juhua/nanshan）","name":"线索名称2-4字","x":图片中横向位置百分比数字,"y":图片中纵向位置百分比数字,"hint":"鼠标悬停时显示的一句话，描述这个线索"}]}`,
+    }], 800)
+    const sceneJson = parseJsonSafe(sceneContent)
+    if (!sceneJson || !sceneJson.narration || !Array.isArray(sceneJson.clues)) {
+      return res.status(500).json({ error: '场景生成失败，请重试' })
+    }
+
+    // 第二步：生成根场景图片（用时间戳做文件名，避免换主题时覆盖旧图）
+    const finalPrompt = sceneJson.imagePrompt || imagePrompt || `${figure} in traditional Chinese painting style, ancient setting`
+    const filename = `root-${Date.now()}.jpg`
+    const destPath = path.join(EXPLORE_IMAGES_DIR, filename)
+    await generateImageFromPrompt(finalPrompt, destPath)
+
+    // 第三步：计算首次探索积分门槛
+    const pointsData = readPoints()
+    const nextThreshold = calcNextThreshold(pointsData.balance)
+
+    // 第四步：构建并保存，覆盖 current（不再按日期锁定）
+    const rootScene = {
+      id: 'root',
+      imageUrl: `/explore-images/${filename}`,
+      narration: sceneJson.narration,
+      clues: sceneJson.clues.map(c => ({
+        id: String(c.id),
+        name: String(c.name),
+        x: Number(c.x),
+        y: Number(c.y),
+        hint: String(c.hint || ''),
+        childSceneId: null,
+      })),
+    }
+    const currentData = {
+      figure,
+      dateContext,
+      nextThreshold,
+      explorationCount: 0,
+      scenes: { root: rootScene },
+    }
+    allData.current = currentData
+    writeExploreData(allData)
+    res.json(currentData)
+  } catch (e) {
+    res.status(500).json({ error: e.message || '确认失败' })
+  }
+})
+
+app.get('/api/explore/today', (req, res) => {
+  const allData = readExploreData()
+  res.json(allData.current || null)
+})
+
+app.post('/api/explore/clue', async (req, res) => {
+  const { clueId, sceneId } = req.body
+  if (!clueId || !sceneId) return res.status(400).json({ error: '缺少参数' })
+
+  const allData = readExploreData()
+  const todayData = allData.current
+  if (!todayData) return res.status(404).json({ error: '当前没有激活的探索主题' })
+
+  const parentScene = todayData.scenes[sceneId]
+  if (!parentScene) return res.status(404).json({ error: '场景不存在' })
+
+  const clue = parentScene.clues.find(c => c.id === clueId)
+  if (!clue) return res.status(404).json({ error: '线索不存在' })
+
+  // 检查积分
+  const pointsData = readPoints()
+  if (pointsData.balance < todayData.nextThreshold) {
+    return res.status(403).json({
+      error: 'insufficient_points',
+      required: todayData.nextThreshold,
+      current: pointsData.balance,
+    })
+  }
+
+  // 子场景已存在，直接返回（不重复生成，不消耗积分门槛）
+  if (clue.childSceneId && todayData.scenes[clue.childSceneId]) {
+    return res.json({ scene: todayData.scenes[clue.childSceneId], nextThreshold: todayData.nextThreshold })
+  }
+
+  // 生成子场景
+  try {
+    const childContent = await callQwen([{
+      role: 'user',
+      content: `历史人物：${todayData.figure}
+当前场景旁白：${parentScene.narration}
+玩家点击了线索「${clue.name}」（${clue.hint}）
+
+请生成探索这个线索后的新场景，深入挖掘线索背后的历史故事和文化内涵。同样要设计3-4个新的可探索线索点。
+
+返回严格JSON，不要有多余文字：
+{"narration":"深入探索后的旁白，讲述线索背后的历史故事和文化内涵，150字以内，用讲故事的语气","imagePrompt":"英文文生图提示词，聚焦这个线索相关的具体画面，中国古风工笔画，100词以内","clues":[{"id":"英文小写id","name":"线索名称2-4字","x":数字,"y":数字,"hint":"悬停提示一句话"}]}`,
+    }], 900)
+    const childJson = parseJsonSafe(childContent)
+    if (!childJson || !childJson.narration || !Array.isArray(childJson.clues)) {
+      return res.status(500).json({ error: '子场景生成失败' })
+    }
+
+    // 生成图片（时间戳文件名）
+    const childId = `${clueId}-${Date.now()}`
+    const filename = `${childId}.jpg`
+    const destPath = path.join(EXPLORE_IMAGES_DIR, filename)
+    await generateImageFromPrompt(childJson.imagePrompt, destPath)
+
+    const childScene = {
+      id: childId,
+      imageUrl: `/explore-images/${filename}`,
+      narration: childJson.narration,
+      clues: childJson.clues.map(c => ({
+        id: String(c.id),
+        name: String(c.name),
+        x: Number(c.x),
+        y: Number(c.y),
+        hint: String(c.hint || ''),
+        childSceneId: null,
+      })),
+    }
+
+    // 更新数据
+    clue.childSceneId = childId
+    todayData.scenes[childId] = childScene
+    todayData.nextThreshold += 10
+    todayData.explorationCount += 1
+    allData.current = todayData
+    writeExploreData(allData)
+
+    res.json({ scene: childScene, nextThreshold: todayData.nextThreshold })
+  } catch (e) {
+    res.status(500).json({ error: e.message || '探索失败' })
+  }
+})
 
 const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格按JSON格式输出，不要有多余文字：
 {"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D，若题目用甲乙丙丁或①②③④等符号，必须对应转换为A/B/C/D","explanation":"解析内容"}`

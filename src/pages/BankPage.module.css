@@ -88,10 +88,10 @@
 .item {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   box-shadow: var(--shadow);
-  transition: box-shadow 0.15s;
+  transition: box-shadow 0.15s, border-radius 0.3s, border-color 0.3s, background 0.3s;
 }
 
 .item:hover { box-shadow: var(--shadow-hover); }
@@ -311,7 +311,7 @@
 .editField {
   background: var(--bg-inset);
   border: 1.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-input);
   color: var(--text);
   font-size: 0.9rem;
   font-family: 'Lora', 'LXGW WenKai', serif;
@@ -328,7 +328,7 @@
 .editArea {
   background: var(--bg-inset);
   border: 1.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-input);
   color: var(--text);
   font-size: 0.87rem;
   font-family: 'Lora', 'LXGW WenKai', serif;
@@ -348,7 +348,7 @@
   padding: 6px 16px;
   background: var(--accent);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-btn);
   color: #f7f4ef;
   font-size: 0.82rem;
   font-weight: 600;
@@ -364,7 +364,7 @@
   padding: 6px 13px;
   background: transparent;
   border: 1.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-input);
   color: var(--text-tertiary);
   font-size: 0.82rem;
   font-family: 'Lora', 'LXGW WenKai', serif;

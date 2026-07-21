@@ -2,13 +2,13 @@ import PracticeCard from './Practice'
 import IdiomCard from './Idiom'
 import ExamCard from './ExamCard'
 import ShenlunCard from './Shenlun'
-import DailyTheme from '../components/DailyTheme'
+import DailyExplore from '../components/DailyExplore'
 import styles from './Home.module.css'
 
 export default function Home() {
   return (
     <div className={styles.page}>
-      <DailyTheme />
+      <DailyExplore />
       <div className={styles.grid}>
         <PracticeCard />
         <IdiomCard />

@@ -19,7 +19,78 @@
   --shadow:        0 2px 10px rgba(120, 90, 60, 0.08), 0 1px 3px rgba(120, 90, 60, 0.04);
   --shadow-hover:  0 6px 20px rgba(120, 90, 60, 0.13), 0 2px 6px rgba(120, 90, 60, 0.07);
   --border:        rgba(180, 160, 120, 0.18);
+
+  /* 圆角 */
+  --radius-card:   16px;
+  --radius-input:  10px;
+  --radius-btn:    10px;
+
+  /* Navbar */
+  --navbar-bg:     rgba(247, 244, 239, 0.88);
+  --navbar-border: rgba(180, 160, 120, 0.22);
+
+  /* Body 背景 */
+  --body-dot-color: rgba(120, 90, 60, 0.045);
+
+  /* DailyTheme Banner */
+  --banner-bg:
+    linear-gradient(135deg, rgba(24, 48, 50, 0.96), rgba(40, 63, 64, 0.9)),
+    radial-gradient(circle at 12% 18%, rgba(217, 188, 126, 0.2), transparent 28%);
+  --banner-border: rgba(218, 196, 151, 0.32);
+  --banner-shadow: 0 12px 34px rgba(40, 54, 49, 0.18), var(--shadow);
+  --banner-shadow-hover: 0 16px 42px rgba(40, 54, 49, 0.22), var(--shadow-hover);
+  --banner-dot-line: rgba(255, 255, 255, 0.04);
+  --banner-dot-line2: rgba(255, 255, 255, 0.035);
 }
+
+/* ── Hello Kitty 主题 ────────────────────────── */
+[data-theme="hellokitty"] {
+  --bg:            #fff0f6;
+  --bg-card:       #fff8fb;
+  --bg-inset:      #ffe8f2;
+  --text:          #3d1a26;
+  --text-secondary:#9a4a6a;
+  --text-tertiary: #c98aaa;
+  --accent:        #e01a6b;
+  --accent-light:  #fce4ef;
+  --green:         #2dbc68;
+  --red:           #c0392b;
+  --separator:     rgba(240, 176, 210, 0.3);
+  --shadow:        0 2px 10px rgba(224, 26, 107, 0.1), 0 1px 3px rgba(224, 26, 107, 0.06);
+  --shadow-hover:  0 6px 20px rgba(224, 26, 107, 0.16), 0 2px 6px rgba(224, 26, 107, 0.09);
+  --border:        rgba(240, 176, 210, 0.45);
+
+  /* 圆角 */
+  --radius-card:   26px;
+  --radius-input:  18px;
+  --radius-btn:    999px;
+
+  /* Navbar */
+  --navbar-bg:     rgba(255, 235, 246, 0.9);
+  --navbar-border: rgba(240, 176, 210, 0.45);
+
+  /* Body 背景 */
+  --body-dot-color: rgba(224, 26, 107, 0.07);
+
+  /* DailyTheme Banner */
+  --banner-bg:
+    linear-gradient(135deg, rgba(100, 10, 50, 0.94), rgba(160, 30, 80, 0.88)),
+    radial-gradient(circle at 12% 18%, rgba(255, 200, 220, 0.25), transparent 30%);
+  --banner-border: rgba(255, 180, 210, 0.4);
+  --banner-shadow: 0 12px 34px rgba(160, 20, 80, 0.22), var(--shadow);
+  --banner-shadow-hover: 0 16px 42px rgba(160, 20, 80, 0.28), var(--shadow-hover);
+  --banner-dot-line: rgba(255, 255, 255, 0.06);
+  --banner-dot-line2: rgba(255, 255, 255, 0.04);
+}
+
+/* Hello Kitty body 背景：粉色波点 */
+[data-theme="hellokitty"] body {
+  background-image: radial-gradient(circle, var(--body-dot-color) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+  font-family: 'Lora', 'LXGW WenKai', 'Georgia', serif;
+}
+
+/* ──────────────────────────────────────────── */
 
 html {
   scroll-behavior: smooth;
@@ -30,7 +101,7 @@ body {
   font-family: 'Lora', 'LXGW WenKai', 'Georgia', serif;
   background-color: var(--bg);
   /* 极淡点阵纸感 */
-  background-image: radial-gradient(circle, rgba(120, 90, 60, 0.045) 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--body-dot-color) 1px, transparent 1px);
   background-size: 22px 22px;
   color: var(--text);
   line-height: 1.6;

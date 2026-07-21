@@ -5,12 +5,11 @@
   padding: 22px 24px 20px;
   overflow: hidden;
   color: #f8f1e4;
-  background:
-    linear-gradient(135deg, rgba(24, 48, 50, 0.96), rgba(40, 63, 64, 0.9)),
-    radial-gradient(circle at 12% 18%, rgba(217, 188, 126, 0.2), transparent 28%);
-  border: 1px solid rgba(218, 196, 151, 0.32);
+  background: var(--banner-bg);
+  border: 1px solid var(--banner-border);
   border-radius: 14px;
-  box-shadow: 0 12px 34px rgba(40, 54, 49, 0.18), var(--shadow);
+  box-shadow: var(--banner-shadow);
+  transition: background 0.4s ease, border-color 0.4s ease;
 }
 
 
@@ -19,15 +18,15 @@
 }
 
 .themeClickable:hover {
-  box-shadow: 0 16px 42px rgba(40, 54, 49, 0.22), var(--shadow-hover);
+  box-shadow: var(--banner-shadow-hover);
 }
 .backdrop {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(90deg, var(--banner-dot-line) 1px, transparent 1px),
+    linear-gradient(0deg, var(--banner-dot-line2) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: linear-gradient(90deg, rgba(0,0,0,0.45), rgba(0,0,0,0.08));
 }

@@ -4,17 +4,28 @@
   left: 0;
   right: 0;
   z-index: 100;
-  background: rgba(247, 244, 239, 0.88);
+  background: var(--navbar-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(180, 160, 120, 0.22);
+  border-bottom: 1px solid var(--navbar-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .nav {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   height: 52px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 导航链接居中的容器 */
+.linksWrap {
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .links {

@@ -95,6 +95,7 @@ export default function DailyTheme() {
   const [modal, setModal] = useState<ThemeModal>(null)
   // 章节插画不存 localStorage，只存服务端；这里是运行时内存缓存，进页面时从服务端水合
   const [images, setImages] = useState<Record<string, string>>({})
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({})
   const imagesRef = useRef(images)
   useEffect(() => { imagesRef.current = images }, [images])
 
@@ -104,7 +105,12 @@ export default function DailyTheme() {
     let cancelled = false
     fetch(`/api/theme-image/${figureIndex}`)
       .then(res => (res.ok ? res.json() : {}))
-      .then((data: Record<string, string>) => { if (!cancelled && data && typeof data === 'object') setImages(data) })
+      .then((data: Record<string, string>) => {
+        if (!cancelled && data && typeof data === 'object') {
+          setImages(data)
+          setBrokenImages({})
+        }
+      })
       .catch(() => {})
     return () => { cancelled = true }
   }, [figureIndex])
@@ -233,15 +239,17 @@ export default function DailyTheme() {
               <div className={styles.galleryScroll}>
                 {unlockedChapters.map((chapter, index) => {
                   const chapterIndex = index + 1
-                  const imageUrl = images[String(chapterIndex)]
+                  const imageKey = String(chapterIndex)
+                  const imageUrl = images[imageKey]
+                  const imageBroken = brokenImages[imageKey]
                   return (
                     <article key={chapter.title} className={styles.galleryPage}>
                       <div className={styles.galleryImage}>
-                        {imageUrl ? (
-                          <img src={imageUrl} alt={`${figure.name} · ${chapter.title}`} />
+                        {imageUrl && !imageBroken ? (
+                          <img src={imageUrl} alt={`${figure.name} · ${chapter.title}`} onError={() => setBrokenImages(current => ({ ...current, [imageKey]: true }))} />
                         ) : (
                           <div className={styles.imagePlaceholder}>
-                            <span>本章图片尚未生成</span>
+                            <span>{imageBroken ? '图片文件已失效，重新解锁时会生成新图' : '本章图片尚未生成'}</span>
                             <strong>{chapter.title}</strong>
                           </div>
                         )}
@@ -263,7 +271,7 @@ export default function DailyTheme() {
                 <>
                   <div className={styles.storyImage}>
                     {modal.imageUrl ? (
-                      <img src={modal.imageUrl} alt={`${figure.name} · ${modal.chapter.title}`} />
+                      <img src={modal.imageUrl} alt={`${figure.name} · ${modal.chapter.title}`} onError={() => setModal(current => current?.type === 'chapter' ? { ...current, imageUrl: undefined, imageLoading: false, imageError: '图片文件已失效，请关闭后重新解锁。' } : current)} />
                     ) : (
                       <div className={styles.imagePlaceholder}>
                         <span>{modal.imageLoading ? '正在生成宋代风格插图，通常需要 10-20 秒' : figure.name}</span>

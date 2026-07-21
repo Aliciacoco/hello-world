@@ -9,9 +9,10 @@
 /* 题目展示 */
 .topicBox {
   background: var(--bg-inset);
-  border-radius: 10px;
+  border-radius: var(--radius-input);
   border: 1px solid var(--border);
   padding: 11px 14px;
+  transition: border-radius 0.3s, border-color 0.3s, background 0.3s;
 }
 
 .topicLabel {
@@ -129,7 +130,7 @@
   font-weight: 600;
   font-family: 'Lora', 'LXGW WenKai', serif;
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color 0.15s, background 0.3s;
 }
 
 .exemplarToggle:hover {
@@ -158,7 +159,7 @@
   padding: 10px;
   background: transparent;
   border: 1.5px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-input);
   color: var(--text-secondary);
   font-size: 0.9rem;
   font-family: 'Lora', 'LXGW WenKai', serif;

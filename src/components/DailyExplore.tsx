@@ -387,6 +387,13 @@ export default function DailyExplore() {
       {/* 旁白 */}
       <p className={styles.narration}>{currentScene.narration}</p>
 
+      {/* 积分不足提示 */}
+      {points < nextThreshold && (
+        <p className={styles.pointsHint}>
+          🔒 还差 <strong>{Math.ceil(nextThreshold - points)} 分</strong>才能探索线索——答题来攒积分吧
+        </p>
+      )}
+
       {/* 错误提示 */}
       {errorMsg && (
         <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: '8px 0 0' }}>

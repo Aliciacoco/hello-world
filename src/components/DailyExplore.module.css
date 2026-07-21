@@ -428,6 +428,19 @@
   backdrop-filter: blur(6px);
 }
 
+/* 积分提示 */
+.pointsHint {
+  margin-top: 10px;
+  color: rgba(248, 241, 228, 0.65);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.pointsHint strong {
+  color: #f7dfaa;
+  font-weight: 700;
+}
+
 /* 面包屑导航 */
 .breadcrumb {
   display: flex;

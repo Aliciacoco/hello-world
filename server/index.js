@@ -487,7 +487,13 @@ app.get('/api/theme-image/:figureIndex', (req, res) => {
 })
 
 app.use('/theme-images', express.static(THEME_IMAGES_DIR))
-app.use('/explore-images', express.static(EXPLORE_IMAGES_DIR))
+// /explore-images 走 /api/ 前缀，确保 Nginx 代理转发到 Express 而不是被前端 catch-all 拦截
+app.get('/api/explore-images/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename) // 防路径穿越
+  res.sendFile(path.join(EXPLORE_IMAGES_DIR, filename), err => {
+    if (err) res.status(404).send('not found')
+  })
+})
 
 // ——— 每日探索模块 ———
 app.post('/api/explore/preview', async (req, res) => {
@@ -541,7 +547,7 @@ app.post('/api/explore/confirm', async (req, res) => {
     // 第四步：构建并保存，覆盖 current（不再按日期锁定）
     const rootScene = {
       id: 'root',
-      imageUrl: `/explore-images/${filename}`,
+      imageUrl: `/api/explore-images/${filename}`,
       narration: sceneJson.narration,
       clues: sceneJson.clues.map(c => ({
         id: String(c.id),
@@ -627,7 +633,7 @@ app.post('/api/explore/clue', async (req, res) => {
 
     const childScene = {
       id: childId,
-      imageUrl: `/explore-images/${filename}`,
+      imageUrl: `/api/explore-images/${filename}`,
       narration: childJson.narration,
       clues: childJson.clues.map(c => ({
         id: String(c.id),

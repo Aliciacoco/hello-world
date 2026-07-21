@@ -23,6 +23,7 @@ interface ExploreDay {
   dateContext: string
   nextThreshold: number
   explorationCount: number
+  confirmedAt?: number
   scenes: Record<string, Scene>
 }
 
@@ -40,6 +41,83 @@ type Phase =
   | 'confirming'
   | 'exploring'
 
+// ——— 画廊模态窗 ———
+function GalleryModal({ onClose }: { onClose: () => void }) {
+  const [items, setItems] = useState<ExploreDay[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/explore/history')
+      .then(r => r.json())
+      .then(data => {
+        setItems(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  // 点击蒙层关闭
+  function handleOverlayClick(e: React.MouseEvent) {
+    if (e.target === e.currentTarget) onClose()
+  }
+
+  return (
+    <div className={styles.galleryOverlay} onClick={handleOverlayClick}>
+      <div className={styles.galleryPanel}>
+        <div className={styles.galleryHeader}>
+          <h2 className={styles.galleryTitle}>🖼️ 我的探索图库</h2>
+          <button className={styles.galleryCloseBtn} onClick={onClose}>关闭</button>
+        </div>
+
+        {loading && (
+          <div className={styles.galleryLoading}>
+            <span className={styles.spinner} />
+            加载中…
+          </div>
+        )}
+
+        {!loading && items.length === 0 && (
+          <p className={styles.galleryEmpty}>还没有生成过任何探索场景。</p>
+        )}
+
+        {!loading && items.map((theme, ti) => {
+          const allScenes = Object.values(theme.scenes)
+          const confirmedDate = theme.confirmedAt
+            ? new Date(theme.confirmedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
+            : ''
+          return (
+            <div key={ti} className={styles.galleryTheme}>
+              <div className={styles.galleryThemeHeader}>
+                <span className={styles.galleryThemeFigure}>{theme.figure}</span>
+                {confirmedDate && (
+                  <span className={styles.galleryThemeDate}>{confirmedDate}</span>
+                )}
+              </div>
+              {theme.dateContext && (
+                <p className={styles.galleryThemeCtx}>{theme.dateContext}</p>
+              )}
+              <div className={styles.galleryGrid}>
+                {allScenes.map(scene => (
+                  <div key={scene.id} className={styles.galleryThumb}>
+                    <img
+                      src={scene.imageUrl}
+                      alt={`${theme.figure} — ${scene.narration.slice(0, 20)}`}
+                      loading="lazy"
+                    />
+                    <div className={styles.galleryThumbCaption}>
+                      {scene.id === 'root' ? '主场景' : scene.narration.slice(0, 18) + '…'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ——— 主组件 ———
 export default function DailyExplore() {
   const [phase, setPhase] = useState<Phase>('loading')
@@ -52,6 +130,7 @@ export default function DailyExplore() {
   const [errorMsg, setErrorMsg] = useState<string>('')
   const [confirmingReset, setConfirmingReset] = useState<boolean>(false)
   const [imgError, setImgError] = useState<boolean>(false)
+  const [showGallery, setShowGallery] = useState<boolean>(false)
 
   const currentSceneId = sceneStack[sceneStack.length - 1]
 
@@ -97,7 +176,7 @@ export default function DailyExplore() {
     }
   }
 
-  // ——— 确认锁定今日人物 ———
+  // ——— 确认锁定主题 ———
   async function handleConfirm() {
     if (!preview) return
     setErrorMsg('')
@@ -151,7 +230,6 @@ export default function DailyExplore() {
         }
         throw new Error(data.error || '探索失败')
       }
-      // 更新本地数据
       setTodayData(prev => {
         if (!prev) return prev
         const updated: ExploreDay = JSON.parse(JSON.stringify(prev))
@@ -210,15 +288,21 @@ export default function DailyExplore() {
           <p className={styles.emptyHint}>
             {isGenerating ? '' : '每天解锁一位历史人物，探索他的故事场景'}
           </p>
-          {errorMsg && <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: 0 }}>{errorMsg}</p>}
-          <button
-            className={styles.startBtn}
-            onClick={fetchPreview}
-            disabled={isGenerating}
-          >
-            {isGenerating
-              ? <><span className={styles.spinner} style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }} />AI 推荐人物中…</>
-              : '生成今日故事'}
+          {errorMsg && (
+            <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: 0 }}>
+              {errorMsg}
+            </p>
+          )}
+          <button className={styles.startBtn} onClick={fetchPreview} disabled={isGenerating}>
+            {isGenerating ? (
+              <>
+                <span
+                  className={styles.spinner}
+                  style={{ width: 14, height: 14, display: 'inline-block', verticalAlign: 'middle', marginRight: 6 }}
+                />
+                AI 推荐人物中…
+              </>
+            ) : '生成今日故事'}
           </button>
         </div>
       </div>
@@ -231,18 +315,16 @@ export default function DailyExplore() {
         <div className={styles.backdrop} />
         <p className={styles.kicker}>选择人物 — 确认后进入探索，随时可更换</p>
         <div className={styles.previewCard}>
-          <div className={styles.previewHeader}>
-            <h2 className={styles.previewFigure}>{preview.figure}</h2>
-          </div>
+          <h2 className={styles.previewFigure}>{preview.figure}</h2>
           <p className={styles.previewContext}>{preview.dateContext}</p>
-          {errorMsg && <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: 0 }}>{errorMsg}</p>}
+          {errorMsg && (
+            <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: 0 }}>
+              {errorMsg}
+            </p>
+          )}
           <div className={styles.previewActions}>
-            <button className={styles.refreshBtn} onClick={fetchPreview}>
-              换一个
-            </button>
-            <button className={styles.confirmBtn} onClick={handleConfirm}>
-              开始探索 →
-            </button>
+            <button className={styles.refreshBtn} onClick={fetchPreview}>换一个</button>
+            <button className={styles.confirmBtn} onClick={handleConfirm}>开始探索 →</button>
           </div>
         </div>
       </div>
@@ -269,137 +351,155 @@ export default function DailyExplore() {
 
   const nextThreshold = todayData.nextThreshold
 
-  function handleResetClick() {
-    setConfirmingReset(true)
-  }
-
-  function handleResetConfirm() {
-    setTodayData(null)
-    setSceneStack(['root'])
-    setErrorMsg('')
-    setConfirmingReset(false)
-    setPhase('no-theme')
-  }
-
   return (
-    <div className={styles.wrap}>
-      <div className={styles.backdrop} />
+    <>
+      {showGallery && <GalleryModal onClose={() => setShowGallery(false)} />}
 
-      {/* 顶部：人物标题 + 积分 + 更换按钮 */}
-      <div className={styles.sceneHeader}>
-        <div>
-          <p className={styles.kicker}>STORY EXPLORE</p>
-          <p className={styles.sceneFigure}>{todayData.figure} · {todayData.dateContext}</p>
-        </div>
-        <div className={styles.sceneHeaderRight}>
-          <span className={styles.pointsBadge}>
-            {points.toFixed(1)} 分 · 下次需 {nextThreshold}
-          </span>
-          {!confirmingReset ? (
-            <button className={styles.resetBtn} onClick={handleResetClick}>更换主题</button>
-          ) : (
-            <div className={styles.resetConfirm}>
-              <span className={styles.resetConfirmText}>确定换掉？</span>
-              <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>取消</button>
-              <button className={styles.resetOkBtn} onClick={handleResetConfirm}>换掉</button>
-            </div>
-          )}
-        </div>
-      </div>
+      <div className={styles.wrap}>
+        <div className={styles.backdrop} />
 
-      {/* 面包屑 */}
-      {sceneStack.length > 1 && (
-        <div className={styles.breadcrumb}>
-          {sceneStack.map((id, idx) => {
-            const isLast = idx === sceneStack.length - 1
-            const label = idx === 0 ? '主场景' : id.split('-')[0]
-            return isLast ? (
-              <span key={id} className={styles.breadcrumbCurrent}>{label}</span>
-            ) : (
-              <>
-                <button
-                  key={id}
-                  className={styles.breadcrumbItem}
-                  onClick={() => goToSceneIndex(idx)}
-                >
-                  {label}
+        {/* 顶部栏 */}
+        <div className={styles.sceneTopBar}>
+          <div className={styles.sceneTopLeft}>
+            <p className={styles.kicker}>STORY EXPLORE</p>
+            <h2 className={styles.sceneFigureHeading}>{todayData.figure}</h2>
+            <p className={styles.sceneDateCtx}>{todayData.dateContext}</p>
+          </div>
+
+          <div className={styles.sceneTopRight}>
+            <span className={styles.pointsBadge}>
+              {points.toFixed(1)} 分 · 下次需 {nextThreshold}
+            </span>
+            <div className={styles.topActions}>
+              <button className={styles.galleryBtn} onClick={() => setShowGallery(true)}>
+                🖼️ 图库
+              </button>
+              {!confirmingReset ? (
+                <button className={styles.resetBtn} onClick={() => setConfirmingReset(true)}>
+                  更换主题
                 </button>
-                <span key={`sep-${idx}`} className={styles.breadcrumbSep}>›</span>
-              </>
+              ) : (
+                <div className={styles.resetConfirm}>
+                  <span className={styles.resetConfirmText}>确定换掉？</span>
+                  <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>
+                    取消
+                  </button>
+                  <button
+                    className={styles.resetOkBtn}
+                    onClick={() => {
+                      setTodayData(null)
+                      setSceneStack(['root'])
+                      setErrorMsg('')
+                      setConfirmingReset(false)
+                      setPhase('no-theme')
+                    }}
+                  >
+                    换掉
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 面包屑 */}
+        {sceneStack.length > 1 && (
+          <div className={styles.breadcrumb}>
+            {sceneStack.map((id, idx) => {
+              const isLast = idx === sceneStack.length - 1
+              const label = idx === 0 ? '主场景' : id.split('-')[0]
+              return isLast ? (
+                <span key={id} className={styles.breadcrumbCurrent}>{label}</span>
+              ) : (
+                <>
+                  <button
+                    key={id}
+                    className={styles.breadcrumbItem}
+                    onClick={() => goToSceneIndex(idx)}
+                  >
+                    {label}
+                  </button>
+                  <span key={`sep-${idx}`} className={styles.breadcrumbSep}>›</span>
+                </>
+              )
+            })}
+          </div>
+        )}
+
+        {/* 图片 + 线索点 + 旁白 overlay */}
+        <div className={styles.imageContainer}>
+          {imgError ? (
+            <div className={styles.imgPlaceholder}>
+              <span className={styles.imgPlaceholderIcon}>🖼️</span>
+              <strong className={styles.imgPlaceholderTitle}>{todayData.figure}</strong>
+              <span className={styles.imgPlaceholderHint}>场景图加载失败，线索仍可探索</span>
+            </div>
+          ) : (
+            <img
+              src={currentScene.imageUrl}
+              alt={`${todayData.figure} - 探索场景`}
+              className={styles.sceneImage}
+              onError={() => setImgError(true)}
+            />
+          )}
+
+          {/* 旁白 overlay（叠在图片底部） */}
+          <div className={styles.narrationOverlay}>
+            {currentScene.narration}
+          </div>
+
+          {/* 线索点 */}
+          {currentScene.clues.map(clue => {
+            const isExplored = !!clue.childSceneId
+            const isLoading = exploringClue === clue.id
+            const canExplore = !isExplored && !isLoading && points >= nextThreshold
+
+            return (
+              <button
+                key={clue.id}
+                className={styles.clueBtn}
+                style={{ left: `${clue.x}%`, top: `${clue.y}%` }}
+                onClick={() => handleClueClick(clue)}
+                title={clue.hint}
+                disabled={isLoading || (!isExplored && !canExplore)}
+              >
+                {isLoading ? (
+                  <span className={styles.clueLoading} />
+                ) : isExplored ? (
+                  <>
+                    <span className={styles.clueExplored} title={`重看：${clue.name}`} />
+                    <span className={styles.clueLabel}>{clue.name} ✦</span>
+                  </>
+                ) : canExplore ? (
+                  <>
+                    <span className={styles.clueHot} />
+                    <span className={styles.clueLabel}>{clue.name}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={styles.clueLocked}>🔒</span>
+                    <span className={styles.clueLockLabel}>差{Math.ceil(nextThreshold - points)}分</span>
+                  </>
+                )}
+              </button>
             )
           })}
         </div>
-      )}
 
-      {/* 图片 + 线索点 */}
-      <div className={styles.imageContainer}>
-        {imgError ? (
-          <div className={styles.imgPlaceholder}>
-            <span className={styles.imgPlaceholderIcon}>🖼️</span>
-            <strong className={styles.imgPlaceholderTitle}>{todayData.figure}</strong>
-            <span className={styles.imgPlaceholderHint}>场景图加载失败，线索仍可探索</span>
-          </div>
-        ) : (
-          <img
-            src={currentScene.imageUrl}
-            alt={`${todayData.figure} - 探索场景`}
-            className={styles.sceneImage}
-            onError={() => setImgError(true)}
-          />
+        {/* 积分不足提示 */}
+        {points < nextThreshold && (
+          <p className={styles.pointsHint}>
+            🔒 还差 <strong>{Math.ceil(nextThreshold - points)} 分</strong>才能探索线索——答题来攒积分吧
+          </p>
         )}
-        {currentScene.clues.map(clue => {
-          const isExplored = !!clue.childSceneId
-          const isLoading = exploringClue === clue.id
-          const canExplore = !isExplored && !isLoading && points >= nextThreshold
 
-          return (
-            <button
-              key={clue.id}
-              className={styles.clueBtn}
-              style={{ left: `${clue.x}%`, top: `${clue.y}%` }}
-              onClick={() => handleClueClick(clue)}
-              title={clue.hint}
-              disabled={isLoading || (!isExplored && !canExplore)}
-            >
-              {isLoading ? (
-                <span className={styles.clueLoading} />
-              ) : isExplored ? (
-                <>
-                  <span className={styles.clueExplored} title={`重看：${clue.name}`} />
-                  <span className={styles.clueLabel}>{clue.name} ✦</span>
-                </>
-              ) : canExplore ? (
-                <>
-                  <span className={styles.clueHot} />
-                  <span className={styles.clueLabel}>{clue.name}</span>
-                </>
-              ) : (
-                <>
-                  <span className={styles.clueLocked}>🔒</span>
-                  <span className={styles.clueLockLabel}>差{Math.ceil(nextThreshold - points)}分</span>
-                </>
-              )}
-            </button>
-          )
-        })}
+        {/* 错误提示 */}
+        {errorMsg && (
+          <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: '10px 0 0', position: 'relative', zIndex: 1 }}>
+            {errorMsg}
+          </p>
+        )}
       </div>
-
-      {/* 旁白 */}
-      <p className={styles.narration}>{currentScene.narration}</p>
-
-      {/* 积分不足提示 */}
-      {points < nextThreshold && (
-        <p className={styles.pointsHint}>
-          🔒 还差 <strong>{Math.ceil(nextThreshold - points)} 分</strong>才能探索线索——答题来攒积分吧
-        </p>
-      )}
-
-      {/* 错误提示 */}
-      {errorMsg && (
-        <p style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.83rem', margin: '8px 0 0' }}>
-          {errorMsg}
-        </p>
-      )}
-    </div>
+    </>
   )
 }

@@ -1,13 +1,13 @@
-/* 整体容器 */
+/* ——— 整体容器 ——— */
 .wrap {
   position: relative;
   max-width: 1200px;
-  margin: 0 auto 18px;
-  padding: 22px 24px 20px;
+  margin: 0 auto 24px;
+  padding: 24px 28px 28px;
   overflow: hidden;
   background: var(--banner-bg);
   border: 1px solid var(--banner-border);
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: var(--banner-shadow);
   transition: background 0.4s ease, border-color 0.4s ease;
   color: #f8f1e4;
@@ -25,15 +25,15 @@
   mask-image: linear-gradient(90deg, rgba(0,0,0,0.45), rgba(0,0,0,0.08));
 }
 
-/* 头部：kicker 标签 */
+/* kicker 标签 */
 .kicker {
   position: relative;
   z-index: 1;
-  margin: 0 0 10px;
-  color: rgba(248, 241, 228, 0.72);
-  font-size: 0.72rem;
+  margin: 0 0 6px;
+  color: rgba(248, 241, 228, 0.55);
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -45,30 +45,31 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  padding: 18px 0 4px;
+  padding: 28px 0 8px;
   text-align: center;
 }
 
 .emptyTitle {
   margin: 0;
   color: #fff8eb;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   font-weight: 700;
 }
 
 .emptyHint {
   margin: 0;
-  color: rgba(248, 241, 228, 0.72);
-  font-size: 0.88rem;
+  color: rgba(248, 241, 228, 0.65);
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .startBtn {
-  padding: 9px 26px;
+  padding: 10px 30px;
   color: #173230;
   background: #f7dfaa;
   border: none;
   border-radius: 999px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -76,7 +77,7 @@
 }
 
 .startBtn:hover { opacity: 0.85; }
-.startBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+.startBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ——— 预览状态 ——— */
 .previewCard {
@@ -84,20 +85,13 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.previewHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
 .previewFigure {
   margin: 0;
   color: #fff8eb;
-  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
   font-weight: 700;
   line-height: 1.1;
 }
@@ -105,23 +99,23 @@
 .previewContext {
   margin: 0;
   color: rgba(248, 241, 228, 0.82);
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.7;
 }
 
 .previewActions {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .refreshBtn {
-  padding: 7px 16px;
+  padding: 8px 18px;
   color: rgba(248, 241, 228, 0.9);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(247, 223, 170, 0.3);
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -132,12 +126,12 @@
 .refreshBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .confirmBtn {
-  padding: 7px 20px;
+  padding: 8px 22px;
   color: #173230;
   background: #f7dfaa;
   border: none;
   border-radius: 999px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -154,9 +148,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 0;
+  padding: 18px 0;
   color: rgba(248, 241, 228, 0.8);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
 .spinner {
@@ -173,55 +167,89 @@
   to { transform: rotate(360deg); }
 }
 
-/* ——— 探索场景 ——— */
-.sceneWrap {
+/* ——— 探索阶段顶部栏 ——— */
+.sceneTopBar {
   position: relative;
   z-index: 1;
-}
-
-.sceneHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
-.sceneFigure {
-  margin: 4px 0 0;
+.sceneTopLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sceneFigureHeading {
+  margin: 0;
   color: #fff8eb;
-  font-size: 1.05rem;
+  font-size: clamp(1.5rem, 3.5vw, 2.3rem);
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.15;
 }
 
-.sceneHeaderRight {
+.sceneDateCtx {
+  margin: 0;
+  color: rgba(248, 241, 228, 0.68);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.sceneTopRight {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
+  gap: 8px;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .pointsBadge {
-  padding: 5px 10px;
+  padding: 5px 12px;
   color: #f7dfaa;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(247, 223, 170, 0.26);
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: 0.77rem;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
 
+.galleryBtn {
+  padding: 5px 12px;
+  color: rgba(248, 241, 228, 0.7);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(247, 223, 170, 0.2);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.galleryBtn:hover {
+  color: rgba(248, 241, 228, 0.95);
+  background: rgba(255, 255, 255, 0.13);
+}
+
 .resetBtn {
-  padding: 4px 12px;
+  padding: 5px 12px;
   color: rgba(248, 241, 228, 0.6);
   background: none;
   border: 1px solid rgba(247, 223, 170, 0.2);
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-family: inherit;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
@@ -236,7 +264,7 @@
 .resetConfirm {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -247,12 +275,12 @@
 
 .resetConfirmText {
   color: rgba(248, 241, 228, 0.75);
-  font-size: 0.72rem;
+  font-size: 0.73rem;
   white-space: nowrap;
 }
 
 .resetCancelBtn {
-  padding: 3px 9px;
+  padding: 4px 10px;
   color: rgba(248, 241, 228, 0.65);
   background: none;
   border: 1px solid rgba(247, 223, 170, 0.2);
@@ -266,7 +294,7 @@
 .resetCancelBtn:hover { color: rgba(248, 241, 228, 0.9); }
 
 .resetOkBtn {
-  padding: 3px 10px;
+  padding: 4px 11px;
   color: #173230;
   background: rgba(247, 223, 170, 0.82);
   border: none;
@@ -280,15 +308,57 @@
 
 .resetOkBtn:hover { opacity: 0.85; }
 
-/* 图片容器 */
+/* ——— 面包屑导航 ——— */
+.breadcrumb {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.breadcrumbItem {
+  background: none;
+  border: none;
+  padding: 3px 8px;
+  color: rgba(248, 241, 228, 0.6);
+  font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.breadcrumbItem:hover {
+  color: #f7dfaa;
+  background: rgba(247, 223, 170, 0.1);
+}
+
+.breadcrumbSep {
+  color: rgba(248, 241, 228, 0.3);
+  font-size: 0.7rem;
+}
+
+.breadcrumbCurrent {
+  padding: 3px 8px;
+  color: #f7dfaa;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+/* ——— 图片容器（核心） ——— */
 .imageContainer {
   position: relative;
+  z-index: 1;
   width: 100%;
   aspect-ratio: 16/9;
-  border-radius: var(--radius-card, 14px);
+  border-radius: 14px;
   overflow: hidden;
   background: #1d322e;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.32);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.38);
 }
 
 .sceneImage {
@@ -298,6 +368,7 @@
   object-fit: cover;
 }
 
+/* 图片占位符（加载失败） */
 .imgPlaceholder {
   width: 100%;
   height: 100%;
@@ -312,19 +383,33 @@
 }
 
 .imgPlaceholderIcon {
-  font-size: 2.4rem;
-  opacity: 0.5;
+  font-size: 2.5rem;
+  opacity: 0.45;
 }
 
 .imgPlaceholderTitle {
   color: #fff8eb;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 700;
 }
 
 .imgPlaceholderHint {
-  color: rgba(248, 241, 228, 0.55);
+  color: rgba(248, 241, 228, 0.5);
   font-size: 0.8rem;
+}
+
+/* 旁白 overlay：贴图片底部 */
+.narrationOverlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 48px 20px 18px;
+  background: linear-gradient(to top, rgba(10,22,20,0.88) 0%, rgba(10,22,20,0.55) 60%, transparent 100%);
+  color: rgba(255, 248, 235, 0.92);
+  font-size: 0.88rem;
+  line-height: 1.7;
+  pointer-events: none;
 }
 
 /* 线索点 */
@@ -334,7 +419,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   background: none;
   border: none;
   padding: 0;
@@ -344,8 +429,8 @@
 
 /* 可点击：金色脉冲 */
 .clueHot {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(247,223,170,0.95), rgba(247,183,80,0.7));
   border: 2px solid rgba(247, 223, 170, 0.9);
@@ -355,7 +440,7 @@
 
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 0 rgba(247, 223, 170, 0.6); }
-  60%  { box-shadow: 0 0 0 10px rgba(247, 223, 170, 0); }
+  60%  { box-shadow: 0 0 0 12px rgba(247, 223, 170, 0); }
   100% { box-shadow: 0 0 0 0 rgba(247, 223, 170, 0); }
 }
 
@@ -365,13 +450,13 @@
   height: 20px;
   border-radius: 50%;
   background: rgba(247, 223, 170, 0.28);
-  border: 1.5px solid rgba(247, 223, 170, 0.4);
+  border: 1.5px solid rgba(247, 223, 170, 0.5);
 }
 
 /* 锁定：灰色 */
 .clueLocked {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.45);
   border: 1.5px solid rgba(255, 255, 255, 0.2);
@@ -383,8 +468,8 @@
 
 /* 加载中 */
 .clueLoading {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 2px solid rgba(247, 223, 170, 0.3);
   border-top-color: #f7dfaa;
@@ -393,11 +478,11 @@
 
 /* 线索标签 */
 .clueLabel {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.62);
   color: #f7dfaa;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
   white-space: nowrap;
   pointer-events: none;
@@ -405,34 +490,23 @@
 }
 
 .clueLockLabel {
-  background: rgba(0, 0, 0, 0.6);
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.65rem;
-  padding: 2px 5px;
+  background: rgba(0, 0, 0, 0.62);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.64rem;
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
   pointer-events: none;
   backdrop-filter: blur(4px);
 }
 
-/* 旁白 */
-.narration {
-  margin-top: 14px;
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.32);
-  border: 1px solid rgba(247, 223, 170, 0.14);
-  border-radius: 10px;
-  color: rgba(255, 248, 235, 0.88);
-  font-size: 0.9rem;
-  line-height: 1.7;
-  backdrop-filter: blur(6px);
-}
-
-/* 积分提示 */
+/* ——— 积分提示（图片下方） ——— */
 .pointsHint {
-  margin-top: 10px;
-  color: rgba(248, 241, 228, 0.65);
-  font-size: 0.82rem;
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  color: rgba(248, 241, 228, 0.6);
+  font-size: 0.83rem;
   line-height: 1.5;
 }
 
@@ -441,60 +515,167 @@
   font-weight: 700;
 }
 
-/* 面包屑导航 */
-.breadcrumb {
+/* ——— 画廊模态窗 ——— */
+.galleryOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(8, 18, 16, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 40px 20px 60px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.galleryPanel {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.galleryHeader {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  justify-content: space-between;
+  margin-bottom: 28px;
 }
 
-.breadcrumbItem {
-  background: none;
-  border: none;
-  padding: 3px 8px;
-  color: rgba(248, 241, 228, 0.65);
-  font-size: 0.75rem;
-  font-weight: 600;
+.galleryTitle {
+  color: #fff8eb;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.galleryCloseBtn {
+  padding: 7px 18px;
+  color: rgba(248, 241, 228, 0.75);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(247, 223, 170, 0.2);
+  border-radius: 999px;
+  font-size: 0.84rem;
   font-family: inherit;
   cursor: pointer;
-  border-radius: 5px;
-  transition: color 0.15s, background 0.15s;
+  transition: background 0.15s;
 }
 
-.breadcrumbItem:hover {
+.galleryCloseBtn:hover { background: rgba(255, 255, 255, 0.14); }
+
+.galleryTheme {
+  margin-bottom: 36px;
+}
+
+.galleryThemeHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(247, 223, 170, 0.15);
+}
+
+.galleryThemeFigure {
   color: #f7dfaa;
-  background: rgba(247, 223, 170, 0.1);
-}
-
-.breadcrumbSep {
-  color: rgba(248, 241, 228, 0.35);
-  font-size: 0.7rem;
-}
-
-.breadcrumbCurrent {
-  padding: 3px 8px;
-  color: #f7dfaa;
-  font-size: 0.75rem;
+  font-size: 1.15rem;
   font-weight: 700;
+}
+
+.galleryThemeDate {
+  color: rgba(248, 241, 228, 0.5);
+  font-size: 0.78rem;
+}
+
+.galleryThemeCtx {
+  color: rgba(248, 241, 228, 0.65);
+  font-size: 0.82rem;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.galleryThumb {
+  position: relative;
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #1d322e;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.galleryThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.galleryThumb:hover img {
+  transform: scale(1.04);
+}
+
+.galleryThumbCaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20px 8px 7px;
+  background: linear-gradient(to top, rgba(10,22,20,0.82), transparent);
+  color: rgba(255, 248, 235, 0.88);
+  font-size: 0.72rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.galleryEmpty {
+  color: rgba(248, 241, 228, 0.5);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.galleryLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 0;
+  color: rgba(248, 241, 228, 0.7);
+  font-size: 0.9rem;
 }
 
 /* 响应式 */
 @media (max-width: 1100px) {
-  .wrap { max-width: 760px; }
+  .wrap { max-width: 780px; }
 }
 
 @media (max-width: 600px) {
   .wrap {
-    padding: 18px 16px 16px;
-    border-radius: 12px;
-    margin-bottom: 14px;
+    padding: 18px 16px 20px;
+    border-radius: 13px;
+    margin-bottom: 16px;
   }
   .imageContainer {
     aspect-ratio: 4/3;
   }
   .clueLabel, .clueLockLabel {
     display: none;
+  }
+  .sceneFigureHeading {
+    font-size: 1.35rem;
+  }
+  .galleryGrid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  .galleryOverlay {
+    padding: 20px 14px 40px;
   }
 }

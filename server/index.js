@@ -573,11 +573,18 @@ app.post('/api/explore/confirm', async (req, res) => {
         childSceneId: null,
       })),
     }
+    // 把旧主题推入历史记录
+    if (allData.current) {
+      allData.history = allData.history || []
+      allData.history.unshift(allData.current)
+    }
+
     const currentData = {
       figure,
       dateContext,
       nextThreshold,
       explorationCount: 0,
+      confirmedAt: Date.now(),
       scenes: { root: rootScene },
     }
     allData.current = currentData
@@ -591,6 +598,14 @@ app.post('/api/explore/confirm', async (req, res) => {
 app.get('/api/explore/today', (req, res) => {
   const allData = readExploreData()
   res.json(allData.current || null)
+})
+
+app.get('/api/explore/history', (req, res) => {
+  const allData = readExploreData()
+  const items = []
+  if (allData.current) items.push(allData.current)
+  if (Array.isArray(allData.history)) items.push(...allData.history)
+  res.json(items)
 })
 
 app.post('/api/explore/clue', async (req, res) => {

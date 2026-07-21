@@ -423,9 +423,11 @@ function parseJsonSafe(text) {
 }
 // 根据提示词生成图片并保存到本地路径（供 explore 功能使用）
 async function generateImageFromPrompt(prompt, destPath) {
+  // 强制追加风格后缀，防止 AI 生成的 prompt 风格不稳定（写实/动漫混杂）
+  const styledPrompt = `${prompt}, Chinese ink wash painting style, gongbi fine brushwork, traditional Chinese watercolor, muted tones, rice paper texture, no photorealism, no anime, no 3D render, no photography`
   const create = await dashscopeRequest('/api/v1/services/aigc/text2image/image-synthesis', 'POST', {
     model: 'wanx2.1-t2i-turbo',
-    input: { prompt },
+    input: { prompt: styledPrompt },
     parameters: { size: '1024*1024', n: 1 },
   })
   const taskId = create.output?.task_id
@@ -610,6 +612,40 @@ app.get('/api/explore/history', (req, res) => {
   res.json(items)
 })
 
+app.delete('/api/explore/history', (req, res) => {
+  const { index } = req.body
+  if (typeof index !== 'number') return res.status(400).json({ error: '无效参数' })
+
+  const allData = readExploreData()
+  let target = null
+  let wasCurrentTheme = false
+
+  if (index === 0) {
+    target = allData.current
+    if (!target) return res.status(404).json({ error: '记录不存在' })
+    allData.current = null
+    wasCurrentTheme = true
+  } else {
+    const histIdx = index - 1
+    if (!allData.history || histIdx >= allData.history.length) {
+      return res.status(404).json({ error: '记录不存在' })
+    }
+    target = allData.history[histIdx]
+    allData.history.splice(histIdx, 1)
+  }
+
+  // 删除该主题所有场景的图片文件
+  Object.values(target.scenes || {}).forEach(scene => {
+    if (scene.imageUrl) {
+      const filename = path.basename(scene.imageUrl)
+      fs.unlink(path.join(EXPLORE_IMAGES_DIR, filename), () => {})
+    }
+  })
+
+  writeExploreData(allData)
+  res.json({ ok: true, wasCurrentTheme })
+})
+
 app.post('/api/explore/clue', async (req, res) => {
   const { clueId, sceneId } = req.body
   if (!clueId || !sceneId) return res.status(400).json({ error: '缺少参数' })
@@ -623,16 +659,6 @@ app.post('/api/explore/clue', async (req, res) => {
 
   const clue = parentScene.clues.find(c => c.id === clueId)
   if (!clue) return res.status(404).json({ error: '线索不存在' })
-
-  // 检查积分
-  const pointsData = readPoints()
-  if (pointsData.balance < todayData.nextThreshold) {
-    return res.status(403).json({
-      error: 'insufficient_points',
-      required: todayData.nextThreshold,
-      current: pointsData.balance,
-    })
-  }
 
   // 子场景已存在，直接返回（不重复生成，不消耗积分门槛）
   if (clue.childSceneId && todayData.scenes[clue.childSceneId]) {

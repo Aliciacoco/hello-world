@@ -42,9 +42,16 @@ type Phase =
   | 'exploring'
 
 // ——— 画廊模态窗 ———
-function GalleryModal({ onClose }: { onClose: () => void }) {
+interface GalleryModalProps {
+  onClose: () => void
+  onCurrentDeleted: () => void
+}
+
+function GalleryModal({ onClose, onCurrentDeleted }: GalleryModalProps) {
   const [items, setItems] = useState<ExploreDay[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingIndex, setDeletingIndex] = useState<number | null>(null)
+  const [deletingInProgress, setDeletingInProgress] = useState(false)
 
   useEffect(() => {
     fetch('/api/explore/history')
@@ -56,7 +63,27 @@ function GalleryModal({ onClose }: { onClose: () => void }) {
       .catch(() => setLoading(false))
   }, [])
 
-  // 点击蒙层关闭
+  async function handleDeleteConfirm(index: number) {
+    setDeletingInProgress(true)
+    try {
+      const r = await fetch('/api/explore/history', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index }),
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || '删除失败')
+      setItems(prev => prev.filter((_, i) => i !== index))
+      setDeletingIndex(null)
+      if (data.wasCurrentTheme) onCurrentDeleted()
+    } catch {
+      // 静默失败，关闭确认态
+      setDeletingIndex(null)
+    } finally {
+      setDeletingInProgress(false)
+    }
+  }
+
   function handleOverlayClick(e: React.MouseEvent) {
     if (e.target === e.currentTarget) onClose()
   }
@@ -85,6 +112,8 @@ function GalleryModal({ onClose }: { onClose: () => void }) {
           const confirmedDate = theme.confirmedAt
             ? new Date(theme.confirmedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
             : ''
+          const isDeleting = deletingIndex === ti
+
           return (
             <div key={ti} className={styles.galleryTheme}>
               <div className={styles.galleryThemeHeader}>
@@ -92,6 +121,34 @@ function GalleryModal({ onClose }: { onClose: () => void }) {
                 {confirmedDate && (
                   <span className={styles.galleryThemeDate}>{confirmedDate}</span>
                 )}
+                <div className={styles.galleryThemeActions}>
+                  {!isDeleting ? (
+                    <button
+                      className={styles.galleryDeleteBtn}
+                      onClick={() => setDeletingIndex(ti)}
+                    >
+                      删除
+                    </button>
+                  ) : (
+                    <div className={styles.galleryDeleteConfirm}>
+                      <span className={styles.galleryDeleteConfirmText}>删除全部图片？</span>
+                      <button
+                        className={styles.galleryDeleteCancelBtn}
+                        onClick={() => setDeletingIndex(null)}
+                        disabled={deletingInProgress}
+                      >
+                        取消
+                      </button>
+                      <button
+                        className={styles.galleryDeleteOkBtn}
+                        onClick={() => handleDeleteConfirm(ti)}
+                        disabled={deletingInProgress}
+                      >
+                        {deletingInProgress ? '…' : '确认'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               {theme.dateContext && (
                 <p className={styles.galleryThemeCtx}>{theme.dateContext}</p>
@@ -123,7 +180,6 @@ export default function DailyExplore() {
   const [phase, setPhase] = useState<Phase>('loading')
   const [preview, setPreview] = useState<PreviewData | null>(null)
   const [todayData, setTodayData] = useState<ExploreDay | null>(null)
-  // 历史场景路径，用于面包屑
   const [sceneStack, setSceneStack] = useState<string[]>(['root'])
   const [exploringClue, setExploringClue] = useState<string | null>(null)
   const [points, setPoints] = useState<number>(0)
@@ -142,7 +198,6 @@ export default function DailyExplore() {
     } catch {}
   }, [])
 
-  // 初始化
   useEffect(() => {
     fetch('/api/explore/today')
       .then(r => r.json())
@@ -205,15 +260,12 @@ export default function DailyExplore() {
   async function handleClueClick(clue: Clue) {
     if (!todayData || exploringClue) return
 
-    // 已探索过：切换到子场景
+    // 已探索：切换到子场景（不消耗任何东西）
     if (clue.childSceneId && todayData.scenes[clue.childSceneId]) {
       setSceneStack(prev => [...prev, clue.childSceneId!])
       setImgError(false)
       return
     }
-
-    // 积分不足
-    if (points < todayData.nextThreshold) return
 
     setExploringClue(clue.id)
     setErrorMsg('')
@@ -224,13 +276,8 @@ export default function DailyExplore() {
         body: JSON.stringify({ clueId: clue.id, sceneId: currentSceneId }),
       })
       const data = await r.json()
-      if (!r.ok) {
-        if (data.error === 'insufficient_points') {
-          await fetchPoints()
-          return
-        }
-        throw new Error(data.error || '探索失败')
-      }
+      if (!r.ok) throw new Error(data.error || '探索失败')
+
       setTodayData(prev => {
         if (!prev) return prev
         const updated: ExploreDay = JSON.parse(JSON.stringify(prev))
@@ -259,6 +306,25 @@ export default function DailyExplore() {
   function goToSceneIndex(idx: number) {
     setSceneStack(prev => prev.slice(0, idx + 1))
     setImgError(false)
+  }
+
+  // ——— 更换主题 ———
+  function handleResetConfirm() {
+    setTodayData(null)
+    setSceneStack(['root'])
+    setErrorMsg('')
+    setImgError(false)
+    setConfirmingReset(false)
+    setPhase('no-theme')
+  }
+
+  // ——— 当前主题被从图库删除 ———
+  function handleCurrentDeleted() {
+    setTodayData(null)
+    setSceneStack(['root'])
+    setImgError(false)
+    setPhase('no-theme')
+    setShowGallery(false)
   }
 
   // ——————————————————————————————
@@ -350,11 +416,14 @@ export default function DailyExplore() {
   const currentScene = todayData.scenes[currentSceneId]
   if (!currentScene) return null
 
-  const nextThreshold = todayData.nextThreshold
-
   return (
     <>
-      {showGallery && <GalleryModal onClose={() => setShowGallery(false)} />}
+      {showGallery && (
+        <GalleryModal
+          onClose={() => setShowGallery(false)}
+          onCurrentDeleted={handleCurrentDeleted}
+        />
+      )}
 
       <div className={styles.wrap}>
         <div className={styles.backdrop} />
@@ -368,9 +437,7 @@ export default function DailyExplore() {
           </div>
 
           <div className={styles.sceneTopRight}>
-            <span className={styles.pointsBadge}>
-              {points.toFixed(1)} 分 · 下次需 {nextThreshold}
-            </span>
+            <span className={styles.pointsBadge}>{points.toFixed(1)} 分</span>
             <div className={styles.topActions}>
               <button className={styles.galleryBtn} onClick={() => setShowGallery(true)}>
                 🖼️ 图库
@@ -385,17 +452,7 @@ export default function DailyExplore() {
                   <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>
                     取消
                   </button>
-                  <button
-                    className={styles.resetOkBtn}
-                    onClick={() => {
-                      setTodayData(null)
-                      setSceneStack(['root'])
-                      setErrorMsg('')
-                      setImgError(false)
-                      setConfirmingReset(false)
-                      setPhase('no-theme')
-                    }}
-                  >
+                  <button className={styles.resetOkBtn} onClick={handleResetConfirm}>
                     换掉
                   </button>
                 </div>
@@ -428,7 +485,7 @@ export default function DailyExplore() {
           </div>
         )}
 
-        {/* 图片 + 线索点 + 旁白 overlay */}
+        {/* 图片 + 线索 + 旁白 overlay */}
         <div className={styles.imageContainer}>
           {imgError ? (
             <div className={styles.imgPlaceholder}>
@@ -445,7 +502,7 @@ export default function DailyExplore() {
             />
           )}
 
-          {/* 旁白 overlay（叠在图片底部） */}
+          {/* 旁白叠在图片底部 */}
           <div className={styles.narrationOverlay}>
             {currentScene.narration}
           </div>
@@ -454,7 +511,7 @@ export default function DailyExplore() {
           {currentScene.clues.map(clue => {
             const isExplored = !!clue.childSceneId
             const isLoading = exploringClue === clue.id
-            const canExplore = !isExplored && !isLoading && points >= nextThreshold
+            const canExplore = !isExplored && !isLoading
 
             return (
               <button
@@ -463,7 +520,7 @@ export default function DailyExplore() {
                 style={{ left: `${clue.x}%`, top: `${clue.y}%` }}
                 onClick={() => handleClueClick(clue)}
                 title={clue.hint}
-                disabled={isLoading || (!isExplored && !canExplore)}
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <span className={styles.clueLoading} />
@@ -477,23 +534,11 @@ export default function DailyExplore() {
                     <span className={styles.clueHot} />
                     <span className={styles.clueLabel}>{clue.name}</span>
                   </>
-                ) : (
-                  <>
-                    <span className={styles.clueLocked}>🔒</span>
-                    <span className={styles.clueLockLabel}>差{Math.ceil(nextThreshold - points)}分</span>
-                  </>
-                )}
+                ) : null}
               </button>
             )
           })}
         </div>
-
-        {/* 积分不足提示 */}
-        {points < nextThreshold && (
-          <p className={styles.pointsHint}>
-            🔒 还差 <strong>{Math.ceil(nextThreshold - points)} 分</strong>才能探索线索——答题来攒积分吧
-          </p>
-        )}
 
         {/* 错误提示 */}
         {errorMsg && (

@@ -25,6 +25,9 @@
   --radius-input:  10px;
   --radius-btn:    10px;
 
+  /* 字体 */
+  --font-body:     'Lora', 'LXGW WenKai', 'Georgia', serif;
+
   /* Navbar */
   --navbar-bg:     rgba(247, 244, 239, 0.88);
   --navbar-border: rgba(180, 160, 120, 0.22);
@@ -65,6 +68,9 @@
   --radius-input:  18px;
   --radius-btn:    999px;
 
+  /* 字体 */
+  --font-body:     'Nunito', 'LXGW WenKai', 'Arial', sans-serif;
+
   /* Navbar */
   --navbar-bg:     rgba(255, 235, 246, 0.9);
   --navbar-border: rgba(240, 176, 210, 0.45);
@@ -83,11 +89,10 @@
   --banner-dot-line2: rgba(255, 255, 255, 0.04);
 }
 
-/* Hello Kitty body 背景：粉色波点 */
+/* Hello Kitty body 背景：粉色波点（字体已由 --font-body 变量控制） */
 [data-theme="hellokitty"] body {
   background-image: radial-gradient(circle, var(--body-dot-color) 1.5px, transparent 1.5px);
   background-size: 20px 20px;
-  font-family: 'Lora', 'LXGW WenKai', 'Georgia', serif;
 }
 
 /* ──────────────────────────────────────────── */
@@ -97,8 +102,13 @@ html {
   overflow-x: clip;
 }
 
+/* 让 button/input/textarea/select 跟随 body 字体，使主题切换生效 */
+button, input, textarea, select {
+  font-family: inherit;
+}
+
 body {
-  font-family: 'Lora', 'LXGW WenKai', 'Georgia', serif;
+  font-family: var(--font-body);
   background-color: var(--bg);
   /* 极淡点阵纸感 */
   background-image: radial-gradient(circle, var(--body-dot-color) 1px, transparent 1px);

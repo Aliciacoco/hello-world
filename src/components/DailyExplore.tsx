@@ -51,6 +51,7 @@ export default function DailyExplore() {
   const [points, setPoints] = useState<number>(0)
   const [errorMsg, setErrorMsg] = useState<string>('')
   const [confirmingReset, setConfirmingReset] = useState<boolean>(false)
+  const [imgError, setImgError] = useState<boolean>(false)
 
   const currentSceneId = sceneStack[sceneStack.length - 1]
 
@@ -127,6 +128,7 @@ export default function DailyExplore() {
     // 已探索过：切换到子场景
     if (clue.childSceneId && todayData.scenes[clue.childSceneId]) {
       setSceneStack(prev => [...prev, clue.childSceneId!])
+      setImgError(false)
       return
     }
 
@@ -164,6 +166,7 @@ export default function DailyExplore() {
         return updated
       })
       setSceneStack(prev => [...prev, data.scene.id])
+      setImgError(false)
       await fetchPoints()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '探索失败'
@@ -176,6 +179,7 @@ export default function DailyExplore() {
   // ——— 面包屑导航 ———
   function goToSceneIndex(idx: number) {
     setSceneStack(prev => prev.slice(0, idx + 1))
+    setImgError(false)
   }
 
   // ——————————————————————————————
@@ -329,11 +333,20 @@ export default function DailyExplore() {
 
       {/* 图片 + 线索点 */}
       <div className={styles.imageContainer}>
-        <img
-          src={currentScene.imageUrl}
-          alt={`${todayData.figure} - 探索场景`}
-          className={styles.sceneImage}
-        />
+        {imgError ? (
+          <div className={styles.imgPlaceholder}>
+            <span className={styles.imgPlaceholderIcon}>🖼️</span>
+            <strong className={styles.imgPlaceholderTitle}>{todayData.figure}</strong>
+            <span className={styles.imgPlaceholderHint}>场景图加载失败，线索仍可探索</span>
+          </div>
+        ) : (
+          <img
+            src={currentScene.imageUrl}
+            alt={`${todayData.figure} - 探索场景`}
+            className={styles.sceneImage}
+            onError={() => setImgError(true)}
+          />
+        )}
         {currentScene.clues.map(clue => {
           const isExplored = !!clue.childSceneId
           const isLoading = exploringClue === clue.id

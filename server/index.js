@@ -60,13 +60,11 @@ app.delete('/api/wrong-answers', (req, res) => {
   res.json({ ok: true })
 })
 
-function callQwen(messages, maxTokens = 800) {
+function callQwen(messages, maxTokens = 800, temperature = null) {
   return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      model: 'qwen-plus',
-      messages,
-      max_tokens: maxTokens,
-    })
+    const payload = { model: 'qwen-plus', messages, max_tokens: maxTokens }
+    if (temperature !== null) payload.temperature = temperature
+    const body = JSON.stringify(payload)
     const req = https.request({
       hostname: 'dashscope.aliyuncs.com',
       path: '/compatible-mode/v1/chat/completions',
@@ -513,12 +511,16 @@ app.get('/api/explore-images/:filename', (req, res) => {
 // ——— 每日探索模块 ———
 app.post('/api/explore/preview', async (req, res) => {
   const today = getTodayStr()
+  // 随机扰动：随机朝代偏好 + 随机种子数字，防止模型每次都推同一人
+  const dynastyHints = ['先秦', '秦汉', '魏晋南北朝', '隋唐', '宋', '元', '明', '清']
+  const randomDynasty = dynastyHints[Math.floor(Math.random() * dynastyHints.length)]
+  const randomSeed = Math.floor(Math.random() * 9000) + 1000
   try {
     const content = await callQwen([{
       role: 'user',
-      content: `今天是${today}。请推荐一位与今日有历史关联的中国历史人物（生卒日、重要事件日、节气相关人物等），每次可以不同，可以随机一些。返回严格JSON，不要有多余文字：
+      content: `今天是${today}（随机参考：${randomSeed}）。请推荐一位与今日有历史关联的中国历史人物（生卒日、重要事件日、节气相关人物等）。优先考虑${randomDynasty}时期的人物，但只要关联合理即可。人物要有新意，不要每次都是同一人。返回严格JSON，不要有多余文字：
 {"figure":"人物姓名","dateContext":"为什么今天和此人有关，1-2句生动有趣的描述","imagePrompt":"英文文生图提示词，中国古风工笔画/水墨画风格，包含人物、具体道具、环境细节，80词以内"}`,
-    }], 600)
+    }], 600, 1.0)
     const json = parseJsonSafe(content)
     if (!json || !json.figure) return res.status(500).json({ error: 'AI返回格式错误' })
     res.json(json)

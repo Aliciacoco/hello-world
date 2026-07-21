@@ -191,6 +191,7 @@ export default function DailyExplore() {
       if (!r.ok) throw new Error(data.error || '确认失败')
       setTodayData(data)
       setSceneStack(['root'])
+      setImgError(false)
       setPhase('exploring')
       fetchPoints()
     } catch (e: unknown) {
@@ -390,6 +391,7 @@ export default function DailyExplore() {
                       setTodayData(null)
                       setSceneStack(['root'])
                       setErrorMsg('')
+                      setImgError(false)
                       setConfirmingReset(false)
                       setPhase('no-theme')
                     }}

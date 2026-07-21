@@ -538,33 +538,56 @@ app.post('/api/explore/confirm', async (req, res) => {
   if (!figure || !dateContext) return res.status(400).json({ error: '缺少人物信息' })
 
   try {
-    // 第一步：生成根场景旁白 + 线索坐标
-    const sceneContent = await callQwen([{
+    // ── 第零步：生成人物档案（外貌 + 环境 + 3件具体实物/地点） ──
+    // 这一步决定了整条探索链的视觉一致性和内容具体性
+    const profileContent = await callQwen([{
       role: 'user',
       content: `历史人物：${figure}
 背景：${dateContext}
 
-请生成一个这个人物的代表性场景，并在场景中设计3个有趣的可探索线索点。线索要和这个人物的生平、著作、事迹相关，位置要分散在画面各处，y坐标尽量在20-70之间（避开画面底部文字区）。
+为这个人物的探索场景选定3件最具代表性的【具体实物或地点】（必须是画面里看得见摸得着的东西，不要抽象概念或情绪），同时描述人物外貌和典型活动环境。
 
 返回严格JSON，不要有多余文字：
-{"narration":"场景旁白，2-3句，像写小说一样：先交代人物当时在做什么、处境如何，再点出画面里能看到的东西，语言通顺易懂，有画面感但不要用晦涩的意象和排比，80字以内","imagePrompt":"英文文生图提示词，中国古风工笔画，具体描述场景中可见的人物、道具、环境，确保3个线索物品在画面中清晰可见，100词以内","clues":[{"id":"英文小写id（如juhua/nanshan）","name":"线索名称2-4字","x":横向百分比,"y":20到70之间的数字,"hint":"悬停提示一句话"},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."}]}`,
+{"appearance":"人物外貌，含服装颜色款式、发型、典型佩戴物，供每张生图保持一致，25字以内","environment":"人物典型活动的地理环境，如'西北边塞黄土高原长城'或'江西浔阳柴桑山林小屋'，15字以内","artifacts":[{"id":"英文小写id","name":"实物或地点名称2-4字","significance":"和人物的关系，可以展开讲什么历史故事，一句话"},{"id":"...","name":"...","significance":"..."},{"id":"...","name":"...","significance":"..."}]}`,
+    }], 600)
+    const profile = parseJsonSafe(profileContent)
+    if (!profile || !Array.isArray(profile.artifacts) || profile.artifacts.length < 3) {
+      return res.status(500).json({ error: '人物档案生成失败，请重试' })
+    }
+
+    // ── 第一步：基于档案生成根场景（线索固定为档案里的3件实物） ──
+    const artifactList = profile.artifacts
+      .map((a, i) => `${i + 1}. 【${a.name}】${a.significance}`)
+      .join('\n')
+    const sceneContent = await callQwen([{
+      role: 'user',
+      content: `历史人物：${figure}，${profile.appearance}，活动于${profile.environment}
+
+以下3件具体实物/地点必须清晰出现在画面中，它们是用户点击探索的入口：
+${artifactList}
+
+用这3样东西设计一个代表性历史场景。线索坐标y值在20-70之间，x值分散开不要挤在一起。
+
+返回严格JSON，不要有多余文字：
+{"narration":"2-3句，像写小说：先说人物当时在做什么、处境如何，顺带点出这3样东西出现在哪里，语言通顺口语，不堆砌意象，80字以内","imagePrompt":"English image prompt, Chinese gongbi painting style, ${figure} in ${profile.environment}, wearing ${profile.appearance}, scene clearly shows: ${profile.artifacts.map(a => a.name).join(', ')}, 100 words max","clues":[{"id":"${profile.artifacts[0].id}","name":"${profile.artifacts[0].name}","x":横向百分比数字,"y":20-70之间数字,"hint":"这个东西在画面哪里、是什么样子，一句话"},{"id":"${profile.artifacts[1].id}","name":"${profile.artifacts[1].name}","x":数字,"y":数字,"hint":"..."},{"id":"${profile.artifacts[2].id}","name":"${profile.artifacts[2].name}","x":数字,"y":数字,"hint":"..."}]}`,
     }], 800)
     const sceneJson = parseJsonSafe(sceneContent)
     if (!sceneJson || !sceneJson.narration || !Array.isArray(sceneJson.clues) || sceneJson.clues.length === 0) {
       return res.status(500).json({ error: '场景生成失败，请重试' })
     }
 
-    // 第二步：生成根场景图片（用时间戳做文件名，避免换主题时覆盖旧图）
-    const finalPrompt = sceneJson.imagePrompt || imagePrompt || `${figure} in traditional Chinese painting style, ancient setting`
+    // ── 第二步：生成根场景图片，外貌和环境前置保证风格一致 ──
+    const baseImagePrompt = sceneJson.imagePrompt
+      || `${figure}, ${profile.appearance}, ${profile.environment}, Chinese gongbi painting`
     const filename = `root-${Date.now()}.jpg`
     const destPath = path.join(EXPLORE_IMAGES_DIR, filename)
-    await generateImageFromPrompt(finalPrompt, destPath)
+    await generateImageFromPrompt(baseImagePrompt, destPath)
 
-    // 第三步：计算首次探索积分门槛
+    // ── 第三步：计算积分门槛 ──
     const pointsData = readPoints()
     const nextThreshold = calcNextThreshold(pointsData.balance)
 
-    // 第四步：构建并保存，覆盖 current（不再按日期锁定）
+    // ── 第四步：保存（旧主题推入历史） ──
     const rootScene = {
       id: 'root',
       imageUrl: `/api/explore-images/${filename}`,
@@ -578,15 +601,14 @@ app.post('/api/explore/confirm', async (req, res) => {
         childSceneId: null,
       })),
     }
-    // 把旧主题推入历史记录
     if (allData.current) {
       allData.history = allData.history || []
       allData.history.unshift(allData.current)
     }
-
     const currentData = {
       figure,
       dateContext,
+      characterProfile: profile,
       nextThreshold,
       explorationCount: 0,
       confirmedAt: Date.now(),
@@ -668,23 +690,27 @@ app.post('/api/explore/clue', async (req, res) => {
 
   // 生成子场景
   try {
+    const profile = todayData.characterProfile
+    const appearanceCtx = profile
+      ? `${profile.appearance}，活动于${profile.environment}`
+      : ''
+
     const childContent = await callQwen([{
       role: 'user',
-      content: `历史人物：${todayData.figure}
-当前场景旁白：${parentScene.narration}
-玩家点击了线索「${clue.name}」（${clue.hint}）
+      content: `历史人物：${todayData.figure}${appearanceCtx ? '，' + appearanceCtx : ''}
+玩家在场景中点击了【${clue.name}】——${clue.hint}
 
-请生成探索这个线索后的新场景，深入挖掘线索背后的历史故事和文化内涵。必须设计3个新的可探索线索点，线索要分散在画面各处，y坐标尽量在20-70之间（避开画面底部文字区）。
+讲述这件实物/地点背后的历史故事，展开一个聚焦于此的新场景画面。新画面里必须有3件新的具体实物或地点可供继续探索（和上一层不重复），y坐标在20-70之间，x值分散。
 
 返回严格JSON，不要有多余文字：
-{"narration":"讲述这个线索背后的历史故事，150字以内。写法：像小说一样，交代来龙去脉——这件东西是什么、和人物有什么关系、当时发生了什么事，语言口语自然，让不了解历史的读者也能看懂，不要堆砌意象和排比句","imagePrompt":"英文文生图提示词，聚焦这个线索相关的具体画面，中国古风工笔画，确保3个线索物品在画面中清晰可见，100词以内","clues":[{"id":"英文小写id","name":"线索名称2-4字","x":数字,"y":20到70之间的数字,"hint":"悬停提示一句话"},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."}]}`,
+{"narration":"150字以内，像写小说：先说这件东西是什么、来历如何，再讲它和${todayData.figure}之间发生的具体事情，让读者了解这段历史，语言口语自然，不堆砌意象","imagePrompt":"English image prompt, Chinese gongbi painting, ${profile ? profile.appearance + ', ' + profile.environment + ', ' : ''}close-up scene focused on ${clue.name}, 3 new historical objects clearly visible in scene, 100 words max","clues":[{"id":"英文小写id","name":"2-4字实物或地点","x":横向百分比,"y":20-70之间,"hint":"一句话"},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."}]}`,
     }], 900)
     const childJson = parseJsonSafe(childContent)
     if (!childJson || !childJson.narration || !Array.isArray(childJson.clues) || childJson.clues.length === 0) {
       return res.status(500).json({ error: '子场景生成失败' })
     }
 
-    // 生成图片（时间戳文件名）
+    // 生成图片（外貌和环境前置，保证跨场景一致）
     const childId = `${clueId}-${Date.now()}`
     const filename = `${childId}.jpg`
     const destPath = path.join(EXPLORE_IMAGES_DIR, filename)

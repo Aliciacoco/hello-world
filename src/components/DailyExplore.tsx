@@ -18,9 +18,16 @@ interface Scene {
   clues: Clue[]
 }
 
+interface CharacterProfile {
+  appearance: string
+  environment: string
+  artifacts: Array<{ id: string; name: string; significance: string }>
+}
+
 interface ExploreDay {
   figure: string
   dateContext: string
+  characterProfile?: CharacterProfile
   nextThreshold: number
   explorationCount: number
   confirmedAt?: number

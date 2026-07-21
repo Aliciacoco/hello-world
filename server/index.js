@@ -389,7 +389,22 @@ async function generateThemeImage({ figure, chapter, fact, importance, detail, v
 
 // ——— 探索功能辅助 ———
 function readExploreData() {
-  try { return JSON.parse(fs.readFileSync(EXPLORE_DATA_FILE, 'utf8')) } catch { return {} }
+  try {
+    const data = JSON.parse(fs.readFileSync(EXPLORE_DATA_FILE, 'utf8'))
+    // 迁移旧格式 URL：/explore-images/ → /api/explore-images/
+    // 旧数据里图片文件本身还在，只是 URL 前缀需要更新
+    if (data.current?.scenes) {
+      let changed = false
+      Object.values(data.current.scenes).forEach(scene => {
+        if (scene.imageUrl && scene.imageUrl.startsWith('/explore-images/')) {
+          scene.imageUrl = '/api/explore-images/' + scene.imageUrl.slice('/explore-images/'.length)
+          changed = true
+        }
+      })
+      if (changed) fs.writeFileSync(EXPLORE_DATA_FILE, JSON.stringify(data, null, 2))
+    }
+    return data
+  } catch { return {} }
 }
 function writeExploreData(data) {
   fs.writeFileSync(EXPLORE_DATA_FILE, JSON.stringify(data, null, 2))

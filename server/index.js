@@ -514,15 +514,26 @@ app.get('/api/explore-images/:filename', (req, res) => {
 // ——— 每日探索模块 ———
 app.post('/api/explore/preview', async (req, res) => {
   const today = getTodayStr()
-  // 随机扰动：随机朝代偏好 + 随机种子数字，防止模型每次都推同一人
   const dynastyHints = ['先秦', '秦汉', '魏晋南北朝', '隋唐', '宋', '元', '明', '清']
   const randomDynasty = dynastyHints[Math.floor(Math.random() * dynastyHints.length)]
   const randomSeed = Math.floor(Math.random() * 9000) + 1000
+
+  // 读取最近用过的人物，传给 AI 避免重复
+  const allData = readExploreData()
+  const recentFigures = [
+    allData.current?.figure,
+    ...(allData.history || []).slice(0, 4).map(h => h.figure),
+  ].filter(Boolean)
+  const excludeClause = recentFigures.length > 0
+    ? `\n以下人物最近已使用过，不要再推荐：${recentFigures.join('、')}。`
+    : ''
+
   try {
     const content = await callQwen([{
       role: 'user',
-      content: `今天是${today}（随机参考：${randomSeed}）。请推荐一位与今日有历史关联的中国历史人物（生卒日、重要事件日、节气相关人物等）。优先考虑${randomDynasty}时期的人物，但只要关联合理即可。人物要有新意，不要每次都是同一人。返回严格JSON，不要有多余文字：
-{"figure":"人物姓名","dateContext":"为什么今天和此人有关，1-2句生动有趣的描述","imagePrompt":"英文文生图提示词，中国古风工笔画/水墨画风格，包含人物、具体道具、环境细节，80词以内"}`,
+      content: `今天是${today}（随机参考：${randomSeed}）。请推荐一位与今日有历史文献明确记载的关联的中国历史人物（如生卒日、某重要事件发生日、节气典故等），关联必须真实存在，不要牵强附会或虚构关联。优先考虑${randomDynasty}时期的人物，但只要关联真实即可。${excludeClause}
+返回严格JSON，不要有多余文字：
+{"figure":"人物姓名","dateContext":"今天和此人的真实历史关联，1-2句生动描述，只说有文献依据的内容","imagePrompt":"英文文生图提示词，中国古风工笔画/水墨画风格，包含人物、具体道具、环境细节，80词以内"}`,
     }], 600, 1.0)
     const json = parseJsonSafe(content)
     if (!json || !json.figure) return res.status(500).json({ error: 'AI返回格式错误' })
@@ -569,7 +580,7 @@ ${artifactList}
 用这3个对象设计一个代表性历史场景。
 
 返回严格JSON，不要有多余文字：
-{"narration":"2-3句，像写小说：先说人物当时在做什么、处境如何，顺带点出这3个对象出现在哪里，语言通顺口语，不堆砌意象，80字以内。如有不常用汉字，紧跟括号标注拼音，如「觥（gōng）筹（chóu）交错」。","imagePrompt":"English image prompt, Chinese gongbi painting style, ${figure} in ${profile.environment}, wearing ${profile.appearance}, scene clearly shows: ${profile.artifacts.map(a => a.name).join(', ')}. IMPORTANT: faithfully depict all people and group activities described in narration, if narration says multiple people, paint multiple people. 100 words max.","clues":[{"id":"${profile.artifacts[0].id}","name":"${profile.artifacts[0].name}","hint":"一句引导读者好奇的问句，如'这件宝物究竟有什么来历？'"},{"id":"${profile.artifacts[1].id}","name":"${profile.artifacts[1].name}","hint":"引导读者好奇的问句"},{"id":"${profile.artifacts[2].id}","name":"${profile.artifacts[2].name}","hint":"引导读者好奇的问句"}]}`,
+{"narration":"2-3句，像写小说：先说人物当时在做什么、处境如何，顺带点出这3个对象出现在哪里，语言通顺口语，不堆砌意象，80字以内。只写有历史文献明确记载的事实，不虚构情节细节，如不确定某细节是否真实只写大事经过。对字频极低、义务教育阶段未曾学过的汉字（如觞、禊、觥、蘖等），紧跟括号标注拼音；常见人名、地名、课本出现过的字一律不加拼音（如谢安、杭州、兰亭均不加）；判断标准：这个字在义务教育语文课本里出现过吗？出现过就不加。","imagePrompt":"English image prompt, Chinese gongbi painting style, ${figure} in ${profile.environment}, wearing ${profile.appearance}, scene clearly shows: ${profile.artifacts.map(a => a.name).join(', ')}. IMPORTANT: faithfully depict all people and group activities described in narration, if narration says multiple people, paint multiple people. 100 words max.","clues":[{"id":"${profile.artifacts[0].id}","name":"${profile.artifacts[0].name}","hint":"一句引导读者好奇的问句，如'这件宝物究竟有什么来历？'"},{"id":"${profile.artifacts[1].id}","name":"${profile.artifacts[1].name}","hint":"引导读者好奇的问句"},{"id":"${profile.artifacts[2].id}","name":"${profile.artifacts[2].name}","hint":"引导读者好奇的问句"}]}`,
     }], 800)
     const sceneJson = parseJsonSafe(sceneContent)
     if (!sceneJson || !sceneJson.narration || !Array.isArray(sceneJson.clues) || sceneJson.clues.length === 0) {
@@ -703,7 +714,7 @@ app.post('/api/explore/clue', async (req, res) => {
 讲述这件实物、地点或人物背后的历史故事，展开一个聚焦于此的新场景画面。新画面里必须有3个新的可探索对象（具体实物、地点或相关历史人物，和上一层不重复）。
 
 返回严格JSON，不要有多余文字：
-{"narration":"150字以内，像写小说：先说这件东西/这个人是什么、来历如何，再讲它/他与${todayData.figure}之间发生的具体事情，让读者了解这段历史。语言口语自然，不堆砌意象。如有不常用汉字，紧跟括号标注拼音，如「觥（gōng）筹（chóu）交错」。","imagePrompt":"English image prompt, Chinese gongbi painting style, ${profile ? profile.appearance + ', ' + profile.environment + ', ' : ''}scene focused on ${clue.name}, 3 new historical objects or people clearly visible. IMPORTANT: faithfully depict all people and group activities described in narration, if narration says multiple people, paint multiple people. 100 words max.","clues":[{"id":"英文小写id","name":"2-4字实物、地点或人物名","hint":"一句引导读者好奇的问句，如'他们在这里究竟发生了什么？'"},{"id":"...","name":"...","hint":"引导问句"},{"id":"...","name":"...","hint":"引导问句"}]}`,
+{"narration":"150字以内，像写小说：先说这件东西/这个人是什么、来历如何，再讲它/他与${todayData.figure}之间发生的具体事情，让读者了解这段历史。语言口语自然，不堆砌意象。只写有历史文献明确记载的事实，不虚构情节细节，如不确定某细节是否真实只写大事经过。对字频极低、义务教育阶段未曾学过的汉字（如觞、禊、觥、蘖等），紧跟括号标注拼音；常见人名、地名、课本出现过的字一律不加拼音；判断标准：这个字在义务教育语文课本里出现过吗？出现过就不加。","imagePrompt":"English image prompt, Chinese gongbi painting style, ${profile ? profile.appearance + ', ' + profile.environment + ', ' : ''}scene focused on ${clue.name}, 3 new historical objects or people clearly visible. IMPORTANT: faithfully depict all people and group activities described in narration, if narration says multiple people, paint multiple people. 100 words max.","clues":[{"id":"英文小写id","name":"2-4字实物、地点或人物名","hint":"一句引导读者好奇的问句，如'他们在这里究竟发生了什么？'"},{"id":"...","name":"...","hint":"引导问句"},{"id":"...","name":"...","hint":"引导问句"}]}`,
     }], 900)
     const childJson = parseJsonSafe(childContent)
     if (!childJson || !childJson.narration || !Array.isArray(childJson.clues) || childJson.clues.length === 0) {

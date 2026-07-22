@@ -59,6 +59,14 @@ function GalleryModal({ onClose, onCurrentDeleted }: GalleryModalProps) {
   const [loading, setLoading] = useState(true)
   const [deletingIndex, setDeletingIndex] = useState<number | null>(null)
   const [deletingInProgress, setDeletingInProgress] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!lightboxUrl) return
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLightboxUrl(null) }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [lightboxUrl])
 
   useEffect(() => {
     fetch('/api/explore/history')
@@ -96,6 +104,20 @@ function GalleryModal({ onClose, onCurrentDeleted }: GalleryModalProps) {
   }
 
   return (
+    <>
+      {/* 全屏 Lightbox */}
+      {lightboxUrl && (
+        <div className={styles.lightboxOverlay} onClick={() => setLightboxUrl(null)}>
+          <button className={styles.lightboxCloseBtn} onClick={() => setLightboxUrl(null)}>×</button>
+          <img
+            className={styles.lightboxImage}
+            src={lightboxUrl}
+            alt="全屏预览"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
+
     <div className={styles.galleryOverlay} onClick={handleOverlayClick}>
       <div className={styles.galleryPanel}>
         <div className={styles.galleryHeader}>
@@ -162,7 +184,12 @@ function GalleryModal({ onClose, onCurrentDeleted }: GalleryModalProps) {
               )}
               <div className={styles.galleryGrid}>
                 {allScenes.map(scene => (
-                  <div key={scene.id} className={styles.galleryThumb}>
+                  <div
+                    key={scene.id}
+                    className={styles.galleryThumb}
+                    onClick={() => setLightboxUrl(scene.imageUrl)}
+                    title="点击全屏查看"
+                  >
                     <img
                       src={scene.imageUrl}
                       alt={`${theme.figure} — ${scene.narration.slice(0, 20)}`}
@@ -171,6 +198,7 @@ function GalleryModal({ onClose, onCurrentDeleted }: GalleryModalProps) {
                     <div className={styles.galleryThumbCaption}>
                       {scene.id === 'root' ? '主场景' : scene.narration.slice(0, 18) + '…'}
                     </div>
+                    <div className={styles.galleryThumbZoom}>⛶</div>
                   </div>
                 ))}
               </div>
@@ -179,6 +207,7 @@ function GalleryModal({ onClose, onCurrentDeleted }: GalleryModalProps) {
         })}
       </div>
     </div>
+    </>
   )
 }
 
@@ -197,6 +226,13 @@ export default function DailyExplore() {
 
   const currentSceneId = sceneStack[sceneStack.length - 1]
 
+  // 持久化当前场景栈，刷新后可恢复
+  useEffect(() => {
+    if (todayData && phase === 'exploring') {
+      sessionStorage.setItem(`explore-stack:${todayData.figure}`, JSON.stringify(sceneStack))
+    }
+  }, [sceneStack, todayData, phase])
+
   const fetchPoints = useCallback(async () => {
     try {
       const r = await fetch('/api/points')
@@ -211,7 +247,19 @@ export default function DailyExplore() {
       .then(data => {
         if (data) {
           setTodayData(data)
-          setSceneStack(['root'])
+          // 从 sessionStorage 恢复上次所在场景，并验证所有 scene id 仍然存在
+          try {
+            const saved = sessionStorage.getItem(`explore-stack:${data.figure}`)
+            if (saved) {
+              const parsed: string[] = JSON.parse(saved)
+              const valid = parsed.filter(id => id === 'root' || !!data.scenes[id])
+              setSceneStack(valid.length > 0 ? valid : ['root'])
+            } else {
+              setSceneStack(['root'])
+            }
+          } catch {
+            setSceneStack(['root'])
+          }
           setPhase('exploring')
           fetchPoints()
         } else {
@@ -492,7 +540,7 @@ export default function DailyExplore() {
           </div>
         )}
 
-        {/* 图片 + 线索 + 旁白 overlay */}
+        {/* 图片 + 旁白 overlay（线索点已移至图片下方） */}
         <div className={styles.imageContainer}>
           {imgError ? (
             <div className={styles.imgPlaceholder}>
@@ -513,35 +561,26 @@ export default function DailyExplore() {
           <div className={styles.narrationOverlay}>
             {currentScene.narration}
           </div>
+        </div>
 
-          {/* 线索点 */}
+        {/* 线索引导卡片（图片下方） */}
+        <div className={styles.clueCards}>
           {currentScene.clues.map(clue => {
             const isExplored = !!clue.childSceneId
             const isLoading = exploringClue === clue.id
-            const canExplore = !isExplored && !isLoading
 
             return (
               <button
                 key={clue.id}
-                className={styles.clueBtn}
-                style={{ left: `${clue.x}%`, top: `${clue.y}%` }}
+                className={`${styles.clueCard} ${isExplored ? styles.clueCardExplored : ''}`}
                 onClick={() => handleClueClick(clue)}
-                title={clue.hint}
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <span className={styles.clueLoading} />
-                ) : isExplored ? (
-                  <>
-                    <span className={styles.clueExplored} title={`重看：${clue.name}`} />
-                    <span className={styles.clueLabel}>{clue.name} ✦</span>
-                  </>
-                ) : canExplore ? (
-                  <>
-                    <span className={styles.clueHot} />
-                    <span className={styles.clueLabel}>{clue.name}</span>
-                  </>
-                ) : null}
+                <span className={styles.clueCardIcon}>
+                  {isLoading ? <span className={styles.clueCardSpinner} /> : isExplored ? '✦' : '🔍'}
+                </span>
+                <span className={styles.clueCardName}>{clue.name}</span>
+                <span className={styles.clueCardHint}>{clue.hint}</span>
               </button>
             )
           })}

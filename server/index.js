@@ -424,10 +424,10 @@ function parseJsonSafe(text) {
 // 根据提示词生成图片并保存到本地路径（供 explore 功能使用）
 async function generateImageFromPrompt(prompt, destPath) {
   // 风格前置（wanx 对靠前内容权重更高）+ negative_prompt 单独传，效果比写在正文里强
-  const styledPrompt = `中国工笔画，古风水墨淡彩，宣纸质感，细腻线描，${prompt}`
-  const negativePrompt = 'photorealistic, anime, cartoon, 3D render, CGI, photography, modern style, digital art, oil painting, western art style, realistic portrait'
+  const styledPrompt = `中国工笔画，古风插画，宣纸质感，线描淡彩，非写实风格，${prompt}`
+  const negativePrompt = 'photorealistic, realistic, hyperrealistic, real person, photograph, photo, 3D render, CGI, anime, cartoon, oil painting, western art style, realistic skin texture, realistic portrait, modern style'
   const create = await dashscopeRequest('/api/v1/services/aigc/text2image/image-synthesis', 'POST', {
-    model: 'wanx2.1-t2i-turbo',
+    model: 'wanx2.1-t2i-plus',
     input: { prompt: styledPrompt, negative_prompt: negativePrompt },
     parameters: { size: '1024*1024', n: 1 },
   })
@@ -538,24 +538,24 @@ app.post('/api/explore/confirm', async (req, res) => {
   if (!figure || !dateContext) return res.status(400).json({ error: '缺少人物信息' })
 
   try {
-    // ── 第零步：生成人物档案（外貌 + 环境 + 3件具体实物/地点） ──
+    // ── 第零步：生成人物档案（外貌 + 环境 + 3个具体可探索对象） ──
     // 这一步决定了整条探索链的视觉一致性和内容具体性
     const profileContent = await callQwen([{
       role: 'user',
       content: `历史人物：${figure}
 背景：${dateContext}
 
-为这个人物的探索场景选定3件最具代表性的【具体实物或地点】（必须是画面里看得见摸得着的东西，不要抽象概念或情绪），同时描述人物外貌和典型活动环境。
+为这个人物的探索场景选定3个最具代表性的【具体实物、历史地点或相关历史人物】（必须是画面里看得见的，不要抽象概念或情绪），同时描述人物外貌和典型活动环境。
 
 返回严格JSON，不要有多余文字：
-{"appearance":"人物外貌，含服装颜色款式、发型、典型佩戴物，供每张生图保持一致，25字以内","environment":"人物典型活动的地理环境，如'西北边塞黄土高原长城'或'江西浔阳柴桑山林小屋'，15字以内","artifacts":[{"id":"英文小写id","name":"实物或地点名称2-4字","significance":"和人物的关系，可以展开讲什么历史故事，一句话"},{"id":"...","name":"...","significance":"..."},{"id":"...","name":"...","significance":"..."}]}`,
+{"appearance":"人物外貌，含服装颜色款式、发型、典型佩戴物，供每张生图保持一致，25字以内","environment":"人物典型活动的地理环境，如'西北边塞黄土高原长城'或'江西浔阳柴桑山林小屋'，15字以内","artifacts":[{"id":"英文小写id","name":"实物/地点/人物名称2-4字","significance":"和人物的关系，可以展开讲什么历史故事，一句话"},{"id":"...","name":"...","significance":"..."},{"id":"...","name":"...","significance":"..."}]}`,
     }], 600)
     const profile = parseJsonSafe(profileContent)
     if (!profile || !Array.isArray(profile.artifacts) || profile.artifacts.length < 3) {
       return res.status(500).json({ error: '人物档案生成失败，请重试' })
     }
 
-    // ── 第一步：基于档案生成根场景（线索固定为档案里的3件实物） ──
+    // ── 第一步：基于档案生成根场景（线索固定为档案里的3个对象） ──
     const artifactList = profile.artifacts
       .map((a, i) => `${i + 1}. 【${a.name}】${a.significance}`)
       .join('\n')
@@ -563,13 +563,13 @@ app.post('/api/explore/confirm', async (req, res) => {
       role: 'user',
       content: `历史人物：${figure}，${profile.appearance}，活动于${profile.environment}
 
-以下3件具体实物/地点必须清晰出现在画面中，它们是用户点击探索的入口：
+以下3个对象必须清晰出现在画面中，它们是用户点击探索的入口：
 ${artifactList}
 
-用这3样东西设计一个代表性历史场景。线索坐标y值在20-70之间，x值分散开不要挤在一起。
+用这3个对象设计一个代表性历史场景。
 
 返回严格JSON，不要有多余文字：
-{"narration":"2-3句，像写小说：先说人物当时在做什么、处境如何，顺带点出这3样东西出现在哪里，语言通顺口语，不堆砌意象，80字以内","imagePrompt":"English image prompt, Chinese gongbi painting style, ${figure} in ${profile.environment}, wearing ${profile.appearance}, scene clearly shows: ${profile.artifacts.map(a => a.name).join(', ')}, 100 words max","clues":[{"id":"${profile.artifacts[0].id}","name":"${profile.artifacts[0].name}","x":横向百分比数字,"y":20-70之间数字,"hint":"这个东西在画面哪里、是什么样子，一句话"},{"id":"${profile.artifacts[1].id}","name":"${profile.artifacts[1].name}","x":数字,"y":数字,"hint":"..."},{"id":"${profile.artifacts[2].id}","name":"${profile.artifacts[2].name}","x":数字,"y":数字,"hint":"..."}]}`,
+{"narration":"2-3句，像写小说：先说人物当时在做什么、处境如何，顺带点出这3个对象出现在哪里，语言通顺口语，不堆砌意象，80字以内。如有不常用汉字，紧跟括号标注拼音，如「觥（gōng）筹（chóu）交错」。","imagePrompt":"English image prompt, Chinese gongbi painting style, ${figure} in ${profile.environment}, wearing ${profile.appearance}, scene clearly shows: ${profile.artifacts.map(a => a.name).join(', ')}. IMPORTANT: faithfully depict all people and group activities described in narration, if narration says multiple people, paint multiple people. 100 words max.","clues":[{"id":"${profile.artifacts[0].id}","name":"${profile.artifacts[0].name}","hint":"一句引导读者好奇的问句，如'这件宝物究竟有什么来历？'"},{"id":"${profile.artifacts[1].id}","name":"${profile.artifacts[1].name}","hint":"引导读者好奇的问句"},{"id":"${profile.artifacts[2].id}","name":"${profile.artifacts[2].name}","hint":"引导读者好奇的问句"}]}`,
     }], 800)
     const sceneJson = parseJsonSafe(sceneContent)
     if (!sceneJson || !sceneJson.narration || !Array.isArray(sceneJson.clues) || sceneJson.clues.length === 0) {
@@ -595,8 +595,8 @@ ${artifactList}
       clues: sceneJson.clues.map(c => ({
         id: String(c.id),
         name: String(c.name),
-        x: Number(c.x),
-        y: Number(c.y),
+        x: 0,
+        y: 0,
         hint: String(c.hint || ''),
         childSceneId: null,
       })),
@@ -698,12 +698,12 @@ app.post('/api/explore/clue', async (req, res) => {
     const childContent = await callQwen([{
       role: 'user',
       content: `历史人物：${todayData.figure}${appearanceCtx ? '，' + appearanceCtx : ''}
-玩家在场景中点击了【${clue.name}】——${clue.hint}
+玩家点击了【${clue.name}】想了解更多——${clue.hint}
 
-讲述这件实物/地点背后的历史故事，展开一个聚焦于此的新场景画面。新画面里必须有3件新的具体实物或地点可供继续探索（和上一层不重复），y坐标在20-70之间，x值分散。
+讲述这件实物、地点或人物背后的历史故事，展开一个聚焦于此的新场景画面。新画面里必须有3个新的可探索对象（具体实物、地点或相关历史人物，和上一层不重复）。
 
 返回严格JSON，不要有多余文字：
-{"narration":"150字以内，像写小说：先说这件东西是什么、来历如何，再讲它和${todayData.figure}之间发生的具体事情，让读者了解这段历史，语言口语自然，不堆砌意象","imagePrompt":"English image prompt, Chinese gongbi painting, ${profile ? profile.appearance + ', ' + profile.environment + ', ' : ''}close-up scene focused on ${clue.name}, 3 new historical objects clearly visible in scene, 100 words max","clues":[{"id":"英文小写id","name":"2-4字实物或地点","x":横向百分比,"y":20-70之间,"hint":"一句话"},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."},{"id":"...","name":"...","x":数字,"y":数字,"hint":"..."}]}`,
+{"narration":"150字以内，像写小说：先说这件东西/这个人是什么、来历如何，再讲它/他与${todayData.figure}之间发生的具体事情，让读者了解这段历史。语言口语自然，不堆砌意象。如有不常用汉字，紧跟括号标注拼音，如「觥（gōng）筹（chóu）交错」。","imagePrompt":"English image prompt, Chinese gongbi painting style, ${profile ? profile.appearance + ', ' + profile.environment + ', ' : ''}scene focused on ${clue.name}, 3 new historical objects or people clearly visible. IMPORTANT: faithfully depict all people and group activities described in narration, if narration says multiple people, paint multiple people. 100 words max.","clues":[{"id":"英文小写id","name":"2-4字实物、地点或人物名","hint":"一句引导读者好奇的问句，如'他们在这里究竟发生了什么？'"},{"id":"...","name":"...","hint":"引导问句"},{"id":"...","name":"...","hint":"引导问句"}]}`,
     }], 900)
     const childJson = parseJsonSafe(childContent)
     if (!childJson || !childJson.narration || !Array.isArray(childJson.clues) || childJson.clues.length === 0) {
@@ -723,8 +723,8 @@ app.post('/api/explore/clue', async (req, res) => {
       clues: childJson.clues.map(c => ({
         id: String(c.id),
         name: String(c.name),
-        x: Number(c.x),
-        y: Number(c.y),
+        x: 0,
+        y: 0,
         hint: String(c.hint || ''),
         childSceneId: null,
       })),

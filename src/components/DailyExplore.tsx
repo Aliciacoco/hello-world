@@ -271,6 +271,7 @@ export default function DailyExplore() {
 
   // ——— 生成预览 ———
   async function fetchPreview() {
+    if (phase === 'generating-preview') return
     setErrorMsg('')
     setPhase('generating-preview')
     try {

@@ -41,6 +41,7 @@ export default function ShenlunCard() {
   }
 
   const submitAnswer = async () => {
+    if (phase === 'judging') return
     if (!title.trim()) { setError('标题不能为空'); return }
     if (!article.trim()) { setError('正文不能为空'); return }
     setError('')

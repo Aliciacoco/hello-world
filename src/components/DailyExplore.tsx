@@ -220,6 +220,7 @@ export default function DailyExplore() {
   const [exploringClue, setExploringClue] = useState<string | null>(null)
   const [points, setPoints] = useState<number>(0)
   const [errorMsg, setErrorMsg] = useState<string>('')
+  const [confirmingReset, setConfirmingReset] = useState<boolean>(false)
   const [imgError, setImgError] = useState<boolean>(false)
   const [showGallery, setShowGallery] = useState<boolean>(false)
 
@@ -363,6 +364,16 @@ export default function DailyExplore() {
     setImgError(false)
   }
 
+  // ——— 更换主题 ———
+  function handleResetConfirm() {
+    setTodayData(null)
+    setSceneStack(['root'])
+    setErrorMsg('')
+    setImgError(false)
+    setConfirmingReset(false)
+    setPhase('no-theme')
+  }
+
   // ——— 当前主题被从图库删除 ———
   function handleCurrentDeleted() {
     setTodayData(null)
@@ -482,11 +493,26 @@ export default function DailyExplore() {
           </div>
 
           <div className={styles.sceneTopRight}>
-            <span className={styles.pointsBadge}>{points.toFixed(1)} 分</span>
             <div className={styles.topActions}>
+              <span className={styles.pointsBadge}>{points.toFixed(1)} 分</span>
               <button className={styles.galleryBtn} onClick={() => setShowGallery(true)}>
                 🖼️ 图库
               </button>
+              {!confirmingReset ? (
+                <button className={styles.resetBtn} onClick={() => setConfirmingReset(true)}>
+                  更换主题
+                </button>
+              ) : (
+                <div className={styles.resetConfirm}>
+                  <span className={styles.resetConfirmText}>确定换掉？</span>
+                  <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>
+                    取消
+                  </button>
+                  <button className={styles.resetOkBtn} onClick={handleResetConfirm}>
+                    换掉
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

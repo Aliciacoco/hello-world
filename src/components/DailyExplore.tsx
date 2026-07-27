@@ -363,16 +363,6 @@ export default function DailyExplore() {
     setImgError(false)
   }
 
-  // ——— 更换主题 ———
-  function handleResetConfirm() {
-    setTodayData(null)
-    setSceneStack(['root'])
-    setErrorMsg('')
-    setImgError(false)
-    setConfirmingReset(false)
-    setPhase('no-theme')
-  }
-
   // ——— 当前主题被从图库删除 ———
   function handleCurrentDeleted() {
     setTodayData(null)
@@ -497,21 +487,6 @@ export default function DailyExplore() {
               <button className={styles.galleryBtn} onClick={() => setShowGallery(true)}>
                 🖼️ 图库
               </button>
-              {!confirmingReset ? (
-                <button className={styles.resetBtn} onClick={() => setConfirmingReset(true)}>
-                  更换主题
-                </button>
-              ) : (
-                <div className={styles.resetConfirm}>
-                  <span className={styles.resetConfirmText}>确定换掉？</span>
-                  <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>
-                    取消
-                  </button>
-                  <button className={styles.resetOkBtn} onClick={handleResetConfirm}>
-                    换掉
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>

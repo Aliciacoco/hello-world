@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import styles from './DailyExplore.module.css'
 
 // ——— 类型 ———
@@ -218,7 +218,6 @@ export default function DailyExplore() {
   const [todayData, setTodayData] = useState<ExploreDay | null>(null)
   const [sceneStack, setSceneStack] = useState<string[]>(['root'])
   const [exploringClue, setExploringClue] = useState<string | null>(null)
-  const [points, setPoints] = useState<number>(0)
   const [errorMsg, setErrorMsg] = useState<string>('')
   const [confirmingReset, setConfirmingReset] = useState<boolean>(false)
   const [imgError, setImgError] = useState<boolean>(false)
@@ -232,14 +231,6 @@ export default function DailyExplore() {
       sessionStorage.setItem(`explore-stack:${todayData.figure}`, JSON.stringify(sceneStack))
     }
   }, [sceneStack, todayData, phase])
-
-  const fetchPoints = useCallback(async () => {
-    try {
-      const r = await fetch('/api/points')
-      const data = await r.json()
-      setPoints(typeof data.balance === 'number' ? data.balance : 0)
-    } catch {}
-  }, [])
 
   useEffect(() => {
     fetch('/api/explore/today')
@@ -261,13 +252,12 @@ export default function DailyExplore() {
             setSceneStack(['root'])
           }
           setPhase('exploring')
-          fetchPoints()
         } else {
           setPhase('no-theme')
         }
       })
       .catch(() => setPhase('no-theme'))
-  }, [fetchPoints])
+  }, [])
 
   // ——— 生成预览 ———
   async function fetchPreview() {
@@ -304,7 +294,6 @@ export default function DailyExplore() {
       setSceneStack(['root'])
       setImgError(false)
       setPhase('exploring')
-      fetchPoints()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '确认失败'
       setErrorMsg(msg)
@@ -349,7 +338,6 @@ export default function DailyExplore() {
       })
       setSceneStack(prev => [...prev, data.scene.id])
       setImgError(false)
-      await fetchPoints()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '探索失败'
       setErrorMsg(msg)

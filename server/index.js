@@ -165,7 +165,7 @@ app.post('/api/idiom/judge', async (req, res) => {
     }])
     const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
     let newBalance = null
-    if (json.correct) newBalance = earnPoints(0.5, 'idiom correct')
+    if (json.correct) newBalance = earnPoints(0.5, '成语答对')
     res.json({
       ...json,
       feedback: json.feedback || '',
@@ -531,7 +531,7 @@ app.post('/api/explore/preview', async (req, res) => {
   try {
     const content = await callQwen([{
       role: 'user',
-      content: `今天是${today}（随机参考：${randomSeed}）。请推荐一位与今日有历史文献明确记载的关联的中国历史人物（如生卒日、某重要事件发生日、节气典故等），关联必须真实存在，不要牵强附会或虚构关联。优先考虑${randomDynasty}时期的人物，但只要关联真实即可。${excludeClause}
+      content: `今天是${today}（随机参考：${randomSeed}）。请推荐一位与今日有历史文献明确记载的关联的中国历史人物（如生卒日、某重要事件发生日、节气典故等），关联必须真实存在，不要牵强附会或虚构关联。必须优先选择在中国广为人知、义务教育历史课本或高中历史考纲内出现过的著名人物（如李白、杜甫、武则天、岳飞、郑成功、王安石、苏轼、诸葛亮等），不要推荐冷僻或知名度极低的历史人物。优先考虑${randomDynasty}时期的人物，但只要关联真实且人物知名即可。${excludeClause}
 返回严格JSON，不要有多余文字：
 {"figure":"人物姓名","dateContext":"今天和此人的真实历史关联，1-2句生动描述，只说有文献依据的内容","imagePrompt":"英文文生图提示词，中国古风工笔画/水墨画风格，包含人物、具体道具、环境细节，80词以内"}`,
     }], 600, 1.0)
@@ -1104,7 +1104,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
         }])
         const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
         let newBalance = null
-        if (json.correct) newBalance = earnPoints(judgeConfig.answerPoints, `${judgeConfig.subjectName} correct`)
+        if (json.correct) newBalance = earnPoints(judgeConfig.answerPoints, `${judgeConfig.subjectName}答对`)
         res.json({ ...json, _pts: json.correct ? judgeConfig.answerPoints : undefined, _balance: newBalance })
       } catch (e) {
         res.status(500).json({ error: e.message })

@@ -220,7 +220,6 @@ export default function DailyExplore() {
   const [exploringClue, setExploringClue] = useState<string | null>(null)
   const [points, setPoints] = useState<number>(0)
   const [errorMsg, setErrorMsg] = useState<string>('')
-  const [confirmingReset, setConfirmingReset] = useState<boolean>(false)
   const [imgError, setImgError] = useState<boolean>(false)
   const [showGallery, setShowGallery] = useState<boolean>(false)
 

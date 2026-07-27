@@ -494,26 +494,16 @@ export default function DailyExplore() {
 
           <div className={styles.sceneTopRight}>
             <div className={styles.topActions}>
-              <span className={styles.pointsBadge}>{points.toFixed(1)} 分</span>
-              <button className={styles.galleryBtn} onClick={() => setShowGallery(true)}>
-                🖼️ 图库
-              </button>
-              {!confirmingReset ? (
-                <button className={styles.resetBtn} onClick={() => setConfirmingReset(true)}>
-                  更换主题
-                </button>
-              ) : (
-                <div className={styles.resetConfirm}>
-                  <span className={styles.resetConfirmText}>确定换掉？</span>
-                  <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>
-                    取消
-                  </button>
-                  <button className={styles.resetOkBtn} onClick={handleResetConfirm}>
-                    换掉
-                  </button>
-                </div>
-              )}
+              <button className={styles.iconBtn} title="图库" onClick={() => setShowGallery(true)}>🖼️</button>
+              <button className={styles.iconBtn} title="更换主题" onClick={() => setConfirmingReset(v => !v)}>↺</button>
             </div>
+            {confirmingReset && (
+              <div className={styles.resetConfirm}>
+                <span className={styles.resetConfirmText}>确定换掉？</span>
+                <button className={styles.resetCancelBtn} onClick={() => setConfirmingReset(false)}>取消</button>
+                <button className={styles.resetOkBtn} onClick={handleResetConfirm}>换掉</button>
+              </div>
+            )}
           </div>
         </div>
 

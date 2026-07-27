@@ -213,58 +213,33 @@
   gap: 8px;
 }
 
-.pointsBadge {
-  padding: 5px 12px;
-  color: #f7dfaa;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(247, 223, 170, 0.26);
-  border-radius: 999px;
-  font-size: 0.77rem;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.galleryBtn {
-  padding: 5px 12px;
-  color: rgba(248, 241, 228, 0.7);
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: rgba(248, 241, 228, 0.65);
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(247, 223, 170, 0.2);
-  border-radius: 999px;
-  font-size: 0.75rem;
+  border-radius: 50%;
+  font-size: 0.9rem;
   font-family: inherit;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.galleryBtn:hover {
+.iconBtn:hover {
   color: rgba(248, 241, 228, 0.95);
-  background: rgba(255, 255, 255, 0.13);
-}
-
-.resetBtn {
-  padding: 5px 12px;
-  color: rgba(248, 241, 228, 0.6);
-  background: none;
-  border: 1px solid rgba(247, 223, 170, 0.2);
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.resetBtn:hover {
-  color: rgba(248, 241, 228, 0.9);
-  border-color: rgba(247, 223, 170, 0.45);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .resetConfirm {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -275,17 +250,17 @@
 
 .resetConfirmText {
   color: rgba(248, 241, 228, 0.75);
-  font-size: 0.73rem;
+  font-size: 0.72rem;
   white-space: nowrap;
 }
 
 .resetCancelBtn {
-  padding: 4px 10px;
+  padding: 3px 8px;
   color: rgba(248, 241, 228, 0.65);
   background: none;
   border: 1px solid rgba(247, 223, 170, 0.2);
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-family: inherit;
   cursor: pointer;
   transition: color 0.15s;
@@ -294,12 +269,12 @@
 .resetCancelBtn:hover { color: rgba(248, 241, 228, 0.9); }
 
 .resetOkBtn {
-  padding: 4px 11px;
+  padding: 3px 9px;
   color: #173230;
   background: rgba(247, 223, 170, 0.82);
   border: none;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;

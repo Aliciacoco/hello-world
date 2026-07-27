@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import styles from './Navbar.module.css'
-import ThemeToggle from './ThemeToggle'
+import NavPoints from './NavPoints'
 
 export default function Navbar() {
   return (
@@ -15,7 +15,7 @@ export default function Navbar() {
             <li><NavLink to="/points" className={({ isActive }) => isActive ? styles.active : ''}>积分</NavLink></li>
           </ul>
         </div>
-        <ThemeToggle />
+        <NavPoints />
       </nav>
     </header>
   )

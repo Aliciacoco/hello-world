@@ -80,7 +80,7 @@ export default function FractionPractice() {
         </div>
 
         <div className={styles.questionText}>
-          1/{n} = ?%
+          1/{n}
         </div>
 
         {phase === 'question' && (
@@ -91,7 +91,7 @@ export default function FractionPractice() {
               value={input}
               onChange={e => { setInput(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && handleSubmitAnswer()}
-              placeholder="输入整数部分"
+              placeholder="百分比整数部分"
               autoFocus
             />
             {error && <p className={styles.error}>{error}</p>}

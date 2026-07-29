@@ -1,4 +1,5 @@
 import PracticeCard from './Practice'
+import FractionPractice from './FractionPractice'
 import IdiomCard from './Idiom'
 import ExamCard from './ExamCard'
 import ShenlunCard from './Shenlun'
@@ -11,6 +12,7 @@ export default function Home() {
       <DailyExplore />
       <div className={styles.grid}>
         <PracticeCard />
+        <FractionPractice />
         <IdiomCard />
         <ExamCard subject="常识" bankType="changshi" pointsPerCorrect={0.5} openEnded />
         <ExamCard subject="数量关系" bankType="math" pointsPerCorrect={1} />

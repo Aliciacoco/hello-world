@@ -9,8 +9,8 @@ function generateN(): number {
   return Math.floor(Math.random() * 19) + 2 // 2~20
 }
 
-function correctAnswer(n: number): number {
-  return Math.floor(100 / n)
+function percentOf(n: number): number {
+  return Math.round((100 / n) * 10) / 10
 }
 
 export default function FractionPractice() {
@@ -22,7 +22,8 @@ export default function FractionPractice() {
   const [aiExplanation, setAiExplanation] = useState('')
   const [cardAnim, setCardAnim] = useState<'correct' | 'wrong' | ''>('')
 
-  const correct = correctAnswer(n)
+  const pct = percentOf(n)
+  const correct = n
 
   const nextQuestion = useCallback(() => {
     setN(generateN())
@@ -60,7 +61,7 @@ export default function FractionPractice() {
     setError('')
     setPhase('loading')
     const userAnswer = parseInt(input.trim(), 10)
-    const explanation = `1/${n} = ${(100 / n).toFixed(4)}…%，取整数位得 ${correct}%`
+    const explanation = `${pct}% ≈ 1/${n}`
     await saveWrongAnswer({
       question: { type: 'F' as never, n, r: 1 },
       userAnswer,
@@ -80,7 +81,7 @@ export default function FractionPractice() {
         </div>
 
         <div className={styles.questionText}>
-          1/{n}
+          {pct}%
         </div>
 
         {phase === 'question' && (
@@ -91,7 +92,7 @@ export default function FractionPractice() {
               value={input}
               onChange={e => { setInput(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && handleSubmitAnswer()}
-              placeholder="百分比整数部分"
+              placeholder="对应分数的分母（如 1/6 填 6）"
               autoFocus
             />
             {error && <p className={styles.error}>{error}</p>}
@@ -101,7 +102,7 @@ export default function FractionPractice() {
 
         {phase === 'correct' && (
           <div className={styles.explanationGroup}>
-            <p className={styles.correctAnswer}>回答正确！答案是 {correct}%</p>
+            <p className={styles.correctAnswer}>回答正确！答案是 1/{correct}</p>
             <button className={styles.btn} onClick={nextQuestion}>下一题</button>
           </div>
         )}
@@ -127,7 +128,7 @@ export default function FractionPractice() {
 
         {phase === 'explanation' && (
           <div className={styles.explanationGroup}>
-            <p className={styles.correctAnswer}>正确答案：{correct}%</p>
+            <p className={styles.correctAnswer}>正确答案：1/{correct}</p>
             <p className={styles.explanation}>{aiExplanation}</p>
             <button className={styles.btn} onClick={nextQuestion}>我明白了</button>
           </div>

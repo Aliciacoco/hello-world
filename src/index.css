@@ -98,8 +98,15 @@
 /* ──────────────────────────────────────────── */
 
 html {
-  scroll-behavior: smooth;
   overflow-x: clip;
+  scroll-padding-top: 68px; /* 留出固定导航栏高度，避免聚焦输入框时被遮挡 */
+}
+
+/* 平滑滚动只在非触屏设备启用，避免手机端键盘弹出时视口尺寸变化与滚动动画打架导致跳转错位 */
+@media (pointer: fine) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* 让 button/input/textarea/select 跟随 body 字体，使主题切换生效 */

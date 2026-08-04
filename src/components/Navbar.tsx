@@ -12,6 +12,7 @@ export default function Navbar() {
           <ul className={styles.links}>
             <li><NavLink to="/" end className={({ isActive }) => isActive ? styles.active : ''}>练习</NavLink></li>
             <li><NavLink to="/bank" className={({ isActive }) => isActive ? styles.active : ''}>题库</NavLink></li>
+            <li><NavLink to="/explore" className={({ isActive }) => isActive ? styles.active : ''}>探索</NavLink></li>
           </ul>
         </div>
         <NavPoints />

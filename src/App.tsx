@@ -4,6 +4,7 @@ import PointToast from './components/PointToast'
 import Home from './pages/Home'
 import BankPage from './pages/BankPage'
 import PointsPage from './pages/PointsPage'
+import DailyExplore from './components/DailyExplore'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/bank" element={<BankPage />} />
           <Route path="/points" element={<PointsPage />} />
+          <Route path="/explore" element={<DailyExplore />} />
         </Routes>
       </main>
     </BrowserRouter>

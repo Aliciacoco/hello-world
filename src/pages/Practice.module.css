@@ -78,7 +78,7 @@
 
 /* ── 大题目数字 ─────────────────────────────── */
 .questionText {
-  font-size: 2.6rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;

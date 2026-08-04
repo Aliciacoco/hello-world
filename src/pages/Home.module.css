@@ -4,6 +4,13 @@
   background: transparent;
 }
 
+.speedRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -28,5 +35,8 @@
   .grid {
     grid-template-columns: 1fr;
     max-width: 100%;
+  }
+  .speedRow {
+    grid-template-columns: 1fr 1fr;
   }
 }

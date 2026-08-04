@@ -9,8 +9,10 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <div className={styles.grid}>
+      <div className={styles.speedRow}>
         <PracticeCard />
         <FractionPractice />
+      </div>
         <IdiomCard />
         <ExamCard subject="常识" bankType="changshi" pointsPerCorrect={0.5} openEnded />
         <ExamCard subject="数量关系" bankType="math" pointsPerCorrect={1} />

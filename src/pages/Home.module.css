@@ -4,6 +4,45 @@
   background: transparent;
 }
 
+.tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  background: rgba(180, 160, 120, 0.1);
+  border-radius: 10px;
+  padding: 3px;
+  width: fit-content;
+}
+
+[data-theme="hellokitty"] .tabs {
+  background: rgba(240, 176, 210, 0.15);
+}
+
+.tab {
+  padding: 6px 20px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tabActive {
+  background: var(--bg-card);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(120, 90, 60, 0.1);
+}
+
+[data-theme="hellokitty"] .tabActive {
+  box-shadow: 0 1px 4px rgba(224, 26, 107, 0.12);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

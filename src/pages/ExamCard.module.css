@@ -25,7 +25,7 @@
 }
 
 /* ── 卡片 ────────────────────────────────────── */
-.container { width: 100%; overflow: hidden; }
+.container { width: 100%; overflow: clip; }
 
 .card {
   background: var(--bg-card);

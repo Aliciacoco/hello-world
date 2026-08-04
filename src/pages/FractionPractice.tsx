@@ -78,6 +78,9 @@ export default function FractionPractice() {
       <div className={`${styles.card} ${cardAnim === 'correct' ? styles.correctAnim : ''} ${cardAnim === 'wrong' ? styles.wrongAnim : ''}`}>
         <div className={styles.cardHeader}>
           <span className={styles.cardLabel}>分数速算</span>
+          {phase === 'question' && (
+            <button className={styles.confirmBtn} onClick={handleSubmitAnswer}>✓</button>
+          )}
         </div>
 
         <div className={styles.questionText}>
@@ -96,7 +99,6 @@ export default function FractionPractice() {
               autoFocus
             />
             {error && <p className={styles.error}>{error}</p>}
-            <button className={styles.btn} onClick={handleSubmitAnswer}>确认</button>
           </div>
         )}
 

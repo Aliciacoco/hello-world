@@ -164,11 +164,16 @@ export default function Idiom() {
       <div className={styles.card}>
         <div className={idiomStyles.header}>
           <span className={idiomStyles.cardLabel}>成语辨析</span>
-          <div className={idiomStyles.tabs}>
-            <button className={`${idiomStyles.tab} ${mode === 'practice' ? idiomStyles.tabActive : ''}`}
-              onClick={() => setMode('practice')}>练题</button>
-            <button className={`${idiomStyles.tab} ${mode === 'upload' ? idiomStyles.tabActive : ''}`}
-              onClick={() => setMode('upload')}>上传</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {mode === 'practice' && phase === 'question' && !!question && !loadingQuestion && (
+              <button className={styles.confirmBtn} onClick={handleSubmitAnswer}>✓</button>
+            )}
+            <div className={idiomStyles.tabs}>
+              <button className={`${idiomStyles.tab} ${mode === 'practice' ? idiomStyles.tabActive : ''}`}
+                onClick={() => setMode('practice')}>练题</button>
+              <button className={`${idiomStyles.tab} ${mode === 'upload' ? idiomStyles.tabActive : ''}`}
+                onClick={() => setMode('upload')}>上传</button>
+            </div>
           </div>
         </div>
 
@@ -192,10 +197,9 @@ export default function Idiom() {
                       value={input}
                       onChange={e => { setInput(e.target.value); setError('') }}
                       placeholder="写下你的理解..."
-                      rows={4}
+                      rows={3}
                     />
                     {error && <p className={styles.error}>{error}</p>}
-                    <button className={styles.btn} onClick={handleSubmitAnswer}>提交</button>
                   </div>
                 )}
                 {phase === 'loading' && <p className={idiomStyles.loading}>AI 判断中...</p>}

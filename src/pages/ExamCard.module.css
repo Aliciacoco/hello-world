@@ -1,3 +1,24 @@
+/* ── 确认按钮（右上角对号） ──────────────────── */
+.confirmBtn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #f7f4ef;
+  border: none;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.1s, background 0.3s;
+}
+.confirmBtn:hover  { opacity: 0.85; }
+.confirmBtn:active { transform: scale(0.92); }
+.confirmBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
 /* ── 动效关键帧 ─────────────────────────────── */
 @keyframes correctPop {
   0%   { transform: scale(1); }

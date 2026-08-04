@@ -226,11 +226,20 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
       <div className={`${styles.card} ${cardAnim === 'correct' ? styles.correctAnim : ''} ${cardAnim === 'wrong' ? styles.wrongAnim : ''}`}>
         <div className={styles.header}>
           <span className={styles.label}>{subject}</span>
-          <div className={styles.modeTabs}>
-            <button className={`${styles.modeTab} ${mode === 'practice' ? styles.modeTabActive : ''}`}
-              onClick={() => { setMode('practice'); setUploadedItem(null) }}>练题</button>
-            <button className={`${styles.modeTab} ${mode === 'upload' ? styles.modeTabActive : ''}`}
-              onClick={() => setMode('upload')}>上传</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {mode === 'practice' && phase === 'question' && !!question && !loadingQ && (
+              <button
+                className={styles.confirmBtn}
+                onClick={handleSubmitAnswer}
+                disabled={!openEnded && !userAnswer}
+              >✓</button>
+            )}
+            <div className={styles.modeTabs}>
+              <button className={`${styles.modeTab} ${mode === 'practice' ? styles.modeTabActive : ''}`}
+                onClick={() => { setMode('practice'); setUploadedItem(null) }}>练题</button>
+              <button className={`${styles.modeTab} ${mode === 'upload' ? styles.modeTabActive : ''}`}
+                onClick={() => setMode('upload')}>上传</button>
+            </div>
           </div>
         </div>
 
@@ -281,11 +290,6 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                     </>
                   )}
                   {error && <p className={styles.error}>{error}</p>}
-                  <button
-                    className={styles.btn}
-                    onClick={handleSubmitAnswer}
-                    disabled={!openEnded && !userAnswer}
-                  >确认</button>
                 </div>
               </>
             )}

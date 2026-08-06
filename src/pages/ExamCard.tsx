@@ -2,6 +2,20 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { earnPoints } from '../utils/points'
 import styles from './ExamCard.module.css'
 
+function renderStem(text: string) {
+  const parts = text.split(/(\d+\/\d+)/)
+  return parts.map((part, i) => {
+    const m = part.match(/^(\d+)\/(\d+)$/)
+    if (m) return (
+      <span key={i} className={styles.frac}>
+        <span className={styles.fracNum}>{m[1]}</span>
+        <span className={styles.fracDen}>{m[2]}</span>
+      </span>
+    )
+    return part
+  })
+}
+
 type Mode = 'practice' | 'upload'
 type Phase = 'question' | 'judging' | 'result'
 
@@ -254,7 +268,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
             {/* ── 答题阶段 ── */}
             {!loadingQ && question && phase === 'question' && (
               <>
-                <p className={styles.stem}>{question.stem}</p>
+                <p className={styles.stem}>{renderStem(question.stem)}</p>
                 <div className={styles.inputGroup}>
                   {openEnded ? (
                     <textarea
@@ -301,7 +315,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
             {/* ── 结果阶段 ── */}
             {phase === 'result' && question && (
               <>
-                <p className={styles.stem}>{question.stem}</p>
+                <p className={styles.stem}>{renderStem(question.stem)}</p>
 
                 {!openEnded && parsedOpts.length > 0 ? (
                   /* 选择题结果：高亮正确/错误选项 */

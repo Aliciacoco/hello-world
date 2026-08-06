@@ -5,47 +5,46 @@
 }
 
 :root {
-  --bg:            #f7f4ef;
-  --bg-card:       #fffef9;
-  --bg-inset:      #f0ede6;
-  --text:          #2c2422;
-  --text-secondary:#7a6e68;
-  --text-tertiary: #a89e98;
-  --accent:        #1e3a5f;
-  --accent-light:  #eef1f6;
-  --green:         #34c759;
-  --red:           #c0392b;
-  --separator:     rgba(180, 160, 120, 0.2);
-  --shadow:        0 2px 10px rgba(120, 90, 60, 0.08), 0 1px 3px rgba(120, 90, 60, 0.04);
-  --shadow-hover:  0 6px 20px rgba(120, 90, 60, 0.13), 0 2px 6px rgba(120, 90, 60, 0.07);
-  --border:        rgba(180, 160, 120, 0.18);
+  --bg:            #fff6fb;
+  --bg-card:       rgba(255, 255, 255, 0.86);
+  --bg-inset:      rgba(255, 230, 244, 0.78);
+  --text:          #3f1831;
+  --text-secondary:#8d4369;
+  --text-tertiary: #c1729b;
+  --accent:        #ff4fa3;
+  --accent-strong: #e91e83;
+  --accent-light:  #ffe2f1;
+  --accent-glow:   rgba(255, 79, 163, 0.32);
+  --gold:          #ffc857;
+  --mint:          #82f0d8;
+  --green:         #14b879;
+  --red:           #ef4b78;
+  --separator:     rgba(255, 155, 205, 0.28);
+  --shadow:        0 18px 50px rgba(255, 79, 163, 0.14), 0 4px 14px rgba(142, 52, 99, 0.08);
+  --shadow-hover:  0 26px 70px rgba(255, 79, 163, 0.22), 0 8px 24px rgba(142, 52, 99, 0.12);
+  --border:        rgba(255, 152, 205, 0.48);
 
-  /* 圆角 */
-  --radius-card:   16px;
-  --radius-input:  10px;
-  --radius-btn:    10px;
+  --radius-card:   26px;
+  --radius-input:  18px;
+  --radius-btn:    999px;
 
-  /* 字体 */
-  --font-body:     'Lora', 'LXGW WenKai', 'Georgia', serif;
+  --font-body:     'Nunito', 'ZCOOL KuaiLe', 'LXGW WenKai', 'Segoe UI', sans-serif;
 
-  /* Navbar */
-  --navbar-bg:     rgba(247, 244, 239, 0.88);
-  --navbar-border: rgba(180, 160, 120, 0.22);
+  --navbar-bg:     rgba(255, 246, 251, 0.82);
+  --navbar-border: rgba(255, 152, 205, 0.35);
 
-  /* Body 背景 */
-  --body-dot-color: rgba(120, 90, 60, 0.045);
+  --body-dot-color: rgba(255, 79, 163, 0.09);
 
-  /* DailyTheme Banner */
   --banner-bg:
-    linear-gradient(135deg, rgba(24, 48, 50, 0.96), rgba(40, 63, 64, 0.9)),
-    radial-gradient(circle at 12% 18%, rgba(217, 188, 126, 0.2), transparent 28%);
-  --banner-border: rgba(218, 196, 151, 0.32);
-  --banner-shadow: 0 12px 34px rgba(40, 54, 49, 0.18), var(--shadow);
-  --banner-shadow-hover: 0 16px 42px rgba(40, 54, 49, 0.22), var(--shadow-hover);
-  --banner-dot-line: rgba(255, 255, 255, 0.04);
-  --banner-dot-line2: rgba(255, 255, 255, 0.035);
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.62), transparent 24%),
+    radial-gradient(circle at 84% 18%, rgba(130, 240, 216, 0.35), transparent 26%),
+    linear-gradient(135deg, #ff5ba8 0%, #ff8fc7 45%, #9f7cff 100%);
+  --banner-border: rgba(255, 255, 255, 0.58);
+  --banner-shadow: 0 24px 70px rgba(255, 79, 163, 0.28), var(--shadow);
+  --banner-shadow-hover: 0 30px 90px rgba(255, 79, 163, 0.36), var(--shadow-hover);
+  --banner-dot-line: rgba(255, 255, 255, 0.18);
+  --banner-dot-line2: rgba(255, 255, 255, 0.1);
 }
-
 /* ── Hello Kitty 主题 ────────────────────────── */
 [data-theme="hellokitty"] {
   --bg:            #fff0f6;
@@ -91,44 +90,21 @@
 
 /* Hello Kitty body 背景：粉色波点（字体已由 --font-body 变量控制） */
 [data-theme="hellokitty"] body {
-  background-image: radial-gradient(circle, var(--body-dot-color) 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
-}
-
-/* ──────────────────────────────────────────── */
-
-html {
-  overflow-x: clip;
-  scroll-padding-top: 68px; /* 留出固定导航栏高度，避免聚焦输入框时被遮挡 */
-}
-
-/* 平滑滚动只在非触屏设备启用，避免手机端键盘弹出时视口尺寸变化与滚动动画打架导致跳转错位 */
-@media (pointer: fine) {
-  html {
-    scroll-behavior: smooth;
-  }
-}
-
-/* 让 button/input/textarea/select 跟随 body 字体，使主题切换生效 */
-button, input, textarea, select {
-  font-family: inherit;
-}
-
-body {
   font-family: var(--font-body);
   background-color: var(--bg);
-  /* 极淡点阵纸感 */
-  background-image: radial-gradient(circle, var(--body-dot-color) 1px, transparent 1px);
-  background-size: 22px 22px;
+  background-image:
+    radial-gradient(circle at 16% 10%, rgba(255, 201, 225, 0.72), transparent 22%),
+    radial-gradient(circle at 86% 6%, rgba(130, 240, 216, 0.34), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(159, 124, 255, 0.18), transparent 30%),
+    radial-gradient(circle, var(--body-dot-color) 1.4px, transparent 1.4px);
+  background-size: auto, auto, auto, 24px 24px;
   color: var(--text);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  /* 防止 iOS 弹性横滑 */
   overscroll-behavior-x: none;
 }
-
 #root {
   min-width: 0;
 }

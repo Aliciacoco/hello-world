@@ -22,6 +22,24 @@ interface JudgeResult {
   _balance?: number
 }
 
+const IDIOM_CURRENT_KEY = 'idiom_current'
+const IDIOM_RECENT_KEY = 'idiom_recent'
+const IDIOM_RECENT_LIMIT = 5
+
+function readRecentIds() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(IDIOM_RECENT_KEY) || '[]')
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : []
+  } catch {
+    return []
+  }
+}
+
+function rememberRecentId(id: string) {
+  const next = [id, ...readRecentIds().filter(item => item !== id)].slice(0, IDIOM_RECENT_LIMIT)
+  sessionStorage.setItem(IDIOM_RECENT_KEY, JSON.stringify(next))
+}
+
 export default function Idiom() {
   const [mode, setMode] = useState<Mode>('practice')
 
@@ -47,9 +65,12 @@ export default function Idiom() {
     setJudgeResult(null)
     setPhase('question')
     setEmptyBank(false)
+    if (force) {
+      sessionStorage.removeItem(IDIOM_CURRENT_KEY)
+    }
     // 刷新页面时保持同一道题，除非主动点"下一题"
     if (!force) {
-      const cached = sessionStorage.getItem('idiom_current')
+      const cached = sessionStorage.getItem(IDIOM_CURRENT_KEY)
       if (cached) {
         try {
           setQuestion(JSON.parse(cached))
@@ -59,14 +80,18 @@ export default function Idiom() {
       }
     }
     try {
-      const url = excludeId
-        ? `/api/bank/idiom/random?exclude=${encodeURIComponent(excludeId)}`
-        : '/api/bank/idiom/random'
+      const params = new URLSearchParams()
+      if (excludeId) params.set('exclude', excludeId)
+      const recentIds = readRecentIds().filter(id => id !== excludeId)
+      if (recentIds.length > 0) params.set('excludeRecent', recentIds.join(','))
+      const query = params.toString()
+      const url = query ? `/api/bank/idiom/random?${query}` : '/api/bank/idiom/random'
       const res = await fetch(url)
       if (res.status === 404) { setEmptyBank(true); return }
       if (!res.ok) throw new Error()
       const q = await res.json()
-      sessionStorage.setItem('idiom_current', JSON.stringify(q))
+      sessionStorage.setItem(IDIOM_CURRENT_KEY, JSON.stringify(q))
+      rememberRecentId(String(q.id))
       setQuestion(q)
     } catch {
       setError('获取题目失败，请重试')
@@ -97,13 +122,11 @@ export default function Idiom() {
           detail: { amount: result._pts, balance: result._balance, activity: 'practice' },
         }))
       }
-      if (!result.correct) {
-        fetch(`/api/bank/idiom/${question.id}/review`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userAnswer: input.trim(), feedback: result.feedback, date: Date.now() }),
-        }).catch(() => {})
-      }
+      fetch(`/api/bank/idiom/${question.id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAnswer: input.trim(), correct: result.correct, feedback: result.feedback, date: Date.now() }),
+      }).catch(() => {})
       setPhase('explanation')
     } catch {
       setError('判断失败，请重试')

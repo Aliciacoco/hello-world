@@ -160,7 +160,7 @@ app.post('/api/idiom/judge', async (req, res) => {
 参考解析：${stdExplanation || '（无）'}
 学生回答：${answer}
 
-你是一个随和的成语老师。判断原则：以参考答案为准，学生答出了核心含义就算对，不要求措辞与参考完全一致；只有答错了方向、望文生义或完全偏离才算错，表述不够完整但方向对也可以给对。不要自己发明含义，严格按参考答案评判。先说"答对了"或"答错了"，再一两句话点出关键或纠错，80字以内，聊天语气，不用列表。
+你是一个严格的成语老师，这是行测备考训练，判分必须准确。判断原则：学生必须答出该成语的核心语义区分点——即让这个词与近义词区分开的关键特征（如使用场景、适用对象、感情色彩、程度深浅）。仅答出大方向或模糊描述不算对，例如：筚路蓝缕仅答"辛苦"不够，必须提到创业/开创事业的艰辛；相沿不辍仅答"继承"不够，必须体现沿袭不变/持续不断的含义。望文生义、方向偏差、漏掉关键限定一律判错。先说"答对了"或"答错了"，再一两句话点出关键区分点或纠错，80字以内，聊天语气，不用列表。
 格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
     }])
     const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
@@ -813,12 +813,30 @@ function writeBank(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
-function selectPracticePool(bank, excludeId) {
-  const available = excludeId && bank.length > 1
-    ? bank.filter(q => String(q.id) !== String(excludeId))
+function normalizeExcludeIds(excludeIds) {
+  if (Array.isArray(excludeIds)) return excludeIds.flatMap(normalizeExcludeIds)
+  return String(excludeIds || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean)
+}
+
+function selectPracticePool(bank, excludeIds) {
+  const excluded = new Set(normalizeExcludeIds(excludeIds))
+  let available = excluded.size > 0 && bank.length > 1
+    ? bank.filter(q => !excluded.has(String(q.id)))
     : bank
+  if (available.length === 0) available = bank
+  // 1. 优先出未练过的
   const unpracticed = available.filter(q => !Array.isArray(q.reviews) || q.reviews.length === 0)
-  return unpracticed.length > 0 ? unpracticed : available
+  if (unpracticed.length > 0) return unpracticed
+  // 2. 过滤掉已掌握的（最近连续答对 ≥2 次）
+  function isLikelyMastered(q) {
+    if (!Array.isArray(q.reviews) || q.reviews.length < 2) return false
+    return q.reviews.slice(-2).every(r => r.correct === true)
+  }
+  const notMastered = available.filter(q => !isLikelyMastered(q))
+  return notMastered.length > 0 ? notMastered : available
 }
 
 function createReviewRecord(body) {
@@ -919,7 +937,7 @@ app.get('/api/bank/math/random', (req, res) => {
   const bank = readBank(MATH_BANK_FILE)
   const choiceBank = bank.filter(hasChoiceOptions)
   if (choiceBank.length === 0) return res.status(404).json({ error: 'No choice questions available' })
-  const pool = selectPracticePool(choiceBank, req.query.exclude)
+  const pool = selectPracticePool(choiceBank, [req.query.exclude, req.query.excludeRecent])
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -962,7 +980,7 @@ app.patch('/api/bank/math/:id/review', (req, res) => {
 app.get('/api/bank/idiom/random', (req, res) => {
   const bank = readBank(IDIOM_BANK_FILE)
   if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  const pool = selectPracticePool(bank, req.query.exclude)
+  const pool = selectPracticePool(bank, [req.query.exclude, req.query.excludeRecent])
   res.json(pool[Math.floor(Math.random() * pool.length)])
 })
 
@@ -1013,7 +1031,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
     const bank = readBank(file)
     if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-    const pool = selectPracticePool(bank, req.query.exclude)
+    const pool = selectPracticePool(bank, [req.query.exclude, req.query.excludeRecent])
     res.json(pool[Math.floor(Math.random() * pool.length)])
   })
 
@@ -1102,7 +1120,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
 背景解析：${explanation || ''}
 学生回答：${userAnswer}
 
-你是一个随和的常识老师。判断原则：只要学生答出了核心知识点就算对，不要求措辞与参考答案完全一致；只有答错了方向、张冠李戴或完全偏离才算错，答案不完整但方向对也可以给对。如果学生回答"不知道""不清楚""放弃""随便"等未作答或明确弃答的内容，或答非所问，必须判错，不能因为"没有答错方向"而判对。先说"答对了"或"答错了"，再一两句话点出关键或纠错，答对了顺带一个记忆要点。80字以内，聊天语气，不用列表。
+你是一个严格的常识老师，这是行测备考训练。判断原则：学生必须答出核心知识点才算对；答错方向、张冠李戴、明显偏离一律判错。特别注意枚举型题目：若题目要求列举多个具体事项（如"分别是哪几个""有哪些""列举"），学生必须列出全部，缺少任何一项即判错，并在反馈中指出漏掉了什么。如果学生回答"不知道""不清楚""放弃""随便"等未作答或明确弃答的内容，或答非所问，必须判错。先说"答对了"或"答错了"，再一两句话点出关键或纠错，答对了顺带一个记忆要点。80字以内，聊天语气，不用列表。
 格式（严格JSON，不要有多余文字）：{"correct":true或false,"feedback":"点评"}`,
         }])
         const json = JSON.parse(content.trim().replace(/```json|```/g, ''))

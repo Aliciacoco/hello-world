@@ -2,24 +2,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  background: var(--bg-inset);
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #ff4fa3, #ff8bc7);
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(255, 79, 163, 0.24);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease, box-shadow 0.16s ease;
 }
 
 .btn:hover {
-  background: var(--bg-card);
-  border-color: var(--accent);
-  transform: scale(1.08);
+  filter: brightness(1.06);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 14px 28px rgba(255, 79, 163, 0.3);
 }
 
 .btn:active {
-  transform: scale(0.94);
+  transform: scale(0.93);
 }

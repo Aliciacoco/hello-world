@@ -36,7 +36,7 @@ export default function ThemeToggle() {
       title={theme === 'hellokitty' ? '切换回默认主题' : '切换 Hello Kitty 主题'}
       type="button"
     >
-      {theme === 'hellokitty' ? '📚' : '🎀'}
+      {theme === 'hellokitty' ? 'D' : '♡'}
     </button>
   )
 }

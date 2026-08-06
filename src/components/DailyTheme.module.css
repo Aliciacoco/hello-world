@@ -515,3 +515,176 @@
     padding: 20px 20px 34px;
   }
 }
+
+/* Candy stage refresh */
+.theme {
+  border-radius: 28px;
+  color: #fff;
+  border-color: var(--banner-border);
+  box-shadow: var(--banner-shadow);
+  transform: translateZ(0);
+}
+
+.theme::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 22%, rgba(255,255,255,0.54), transparent 18%),
+    radial-gradient(circle at 78% 18%, rgba(255,232,156,0.42), transparent 17%),
+    linear-gradient(120deg, transparent 18%, rgba(255,255,255,0.32) 42%, transparent 60%);
+  opacity: 0.85;
+}
+
+.theme::after {
+  content: '♡';
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  color: rgba(255,255,255,0.36);
+  font-size: 4.2rem;
+  line-height: 1;
+  transform: rotate(12deg);
+  pointer-events: none;
+}
+
+.themeClickable:hover {
+  transform: translateY(-4px) rotate(0.2deg);
+  box-shadow: var(--banner-shadow-hover);
+}
+
+.backdrop {
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.28) 1.5px, transparent 2px),
+    linear-gradient(90deg, var(--banner-dot-line) 1px, transparent 1px);
+  background-size: 18px 18px, 42px 42px;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,0.72), rgba(0,0,0,0.16));
+}
+
+.kicker,
+.modalKicker {
+  color: rgba(255,255,255,0.82);
+  letter-spacing: 0.08em;
+}
+
+.title {
+  color: #fff;
+  text-shadow: 0 3px 0 rgba(162, 41, 118, 0.16);
+  font-size: clamp(1.65rem, 3.3vw, 2.45rem);
+}
+
+.subtitle {
+  color: rgba(255,255,255,0.86);
+  font-weight: 750;
+}
+
+.count,
+.galleryBtn,
+.openGalleryBtn {
+  color: #b51b68;
+  background: rgba(255,255,255,0.86);
+  border-color: rgba(255,255,255,0.72);
+  box-shadow: 0 10px 24px rgba(183, 32, 107, 0.16);
+}
+
+.galleryBtn:hover,
+.openGalleryBtn:hover,
+.devTools button:hover {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.chapterLabel {
+  color: #fff4a8;
+  text-shadow: 0 2px 0 rgba(152, 58, 20, 0.12);
+}
+
+.dot,
+.dotDone {
+  height: 10px;
+  background: rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.dotDone {
+  background: linear-gradient(90deg, #fff4a8, #ffc857, #fff);
+  border-color: rgba(255,255,255,0.7);
+  box-shadow: 0 0 18px rgba(255, 232, 156, 0.48);
+}
+
+.bonus {
+  color: #fff;
+  background: linear-gradient(135deg, #ff4fa3, #ff8bc7);
+  box-shadow: 0 16px 34px rgba(255, 79, 163, 0.34);
+}
+
+.overlay {
+  background: rgba(80, 20, 62, 0.46);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.storyModal,
+.galleryModal {
+  background: #fff7fb;
+  border-color: rgba(255,255,255,0.72);
+  border-radius: 28px;
+  box-shadow: 0 34px 100px rgba(94, 24, 70, 0.34);
+}
+
+.storyImage { background: #ffe6f3; }
+.storyImage::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(80, 20, 62, 0.28) 32%, rgba(80, 20, 62, 0.88) 100%);
+}
+
+.imagePlaceholder {
+  color: #b51b68;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.62), transparent 26%),
+    linear-gradient(135deg, #ffe0f0, #ffd1e9 48%, #e6dcff);
+}
+
+.imagePlaceholder span,
+.imagePlaceholder small { color: rgba(112, 37, 82, 0.72); }
+.imagePlaceholder strong { color: #b51b68; }
+
+.storyText p:not(.modalKicker),
+.galleryText p:not(.modalKicker) {
+  color: rgba(255, 249, 253, 0.9);
+  font-weight: 650;
+}
+
+.galleryIntro {
+  background: linear-gradient(135deg, rgba(255,79,163,0.96), rgba(159,124,255,0.9));
+  border-bottom-color: rgba(255,255,255,0.22);
+}
+
+.galleryIntro h2 { color: #fff; }
+.galleryIntro span { color: #fff4a8; }
+.galleryPage { background: #fff1f8; border-bottom-color: rgba(255,152,205,0.26); }
+.galleryImage { background: #ffe4f2; }
+.galleryText { background: linear-gradient(180deg, rgba(255,79,163,0.88), rgba(80,20,62,0.94)); }
+.galleryText h3 { color: #fff; }
+
+.completeModal {
+  border-radius: 26px;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 28px 80px rgba(255,79,163,0.26);
+}
+
+.completeTextWrap .modalTitle { color: var(--accent); }
+
+.devTools button {
+  color: #b51b68;
+  background: rgba(255,255,255,0.76);
+  border-color: rgba(255,255,255,0.6);
+  border-radius: 999px;
+  transition: transform 0.16s ease;
+}
+
+@media (max-width: 600px) {
+  .theme { border-radius: 24px; }
+  .theme::after { font-size: 3rem; right: 12px; top: 12px; }
+  .storyModal,
+  .galleryModal { border-radius: 0; }
+}

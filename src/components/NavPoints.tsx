@@ -22,7 +22,7 @@ export default function NavPoints() {
 
   return (
     <NavLink to="/points" className={styles.badge}>
-      🪙 {balance === null ? '…' : balance.toFixed(1)}
+      分 {balance === null ? '…' : balance.toFixed(1)}
     </NavLink>
   )
 }

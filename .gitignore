@@ -16,3 +16,6 @@ server/shenlun_bank.json
 server/points.json
 server/theme_images.json
 server/theme-images/
+
+# Codex local visual check logs
+vite-candy*.log

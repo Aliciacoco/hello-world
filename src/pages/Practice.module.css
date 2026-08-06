@@ -1,247 +1,314 @@
-/* 共享样式：Practice + Idiom 都引用这个文件 */
+/* 共享样式：Practice + Idiom */
 
-/* ── 动效关键帧 ─────────────────────────────── */
 @keyframes correctPop {
-  0%   { transform: scale(1); }
-  35%  { transform: scale(1.028); }
-  65%  { transform: scale(0.986); }
-  100% { transform: scale(1); }
+  0% { transform: translateY(0) scale(1) rotate(0); filter: saturate(1); }
+  36% { transform: translateY(-8px) scale(1.035) rotate(-0.5deg); filter: saturate(1.2); }
+  70% { transform: translateY(2px) scale(0.99) rotate(0.3deg); }
+  100% { transform: translateY(0) scale(1) rotate(0); }
 }
 
 @keyframes wrongShake {
-  0%, 100% { transform: translateX(0); }
-  18%  { transform: translateX(-6px); }
-  36%  { transform: translateX(6px); }
-  54%  { transform: translateX(-4px); }
-  72%  { transform: translateX(4px); }
+  0%, 100% { transform: translateX(0) rotate(0); }
+  18% { transform: translateX(-7px) rotate(-1deg); }
+  36% { transform: translateX(7px) rotate(1deg); }
+  54% { transform: translateX(-4px) rotate(-0.6deg); }
+  72% { transform: translateX(4px) rotate(0.6deg); }
 }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(14px); }
-  to   { opacity: 1; transform: translateX(0); }
+@keyframes cardFloatIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes sparkleSweep {
+  from { transform: translateX(-130%) rotate(12deg); }
+  to { transform: translateX(130%) rotate(12deg); }
 }
 
-/* ── 卡片容器 ────────────────────────────────── */
+@keyframes softPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 79, 163, 0); }
+  50% { box-shadow: 0 0 28px rgba(255, 79, 163, 0.22); }
+}
+
 .container {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+  perspective: 900px;
 }
 
 .card {
+  position: relative;
   flex: 1;
-  background: var(--bg-card);
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border);
-  padding: 18px 20px 24px;
   width: 100%;
+  min-height: 232px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 16px;
+  padding: 20px 20px 22px;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(255, 239, 248, 0.78)),
+    radial-gradient(circle at 16% 12%, rgba(255, 200, 226, 0.62), transparent 32%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.2s ease,
-              border-radius 0.3s ease,
-              border-color 0.3s ease,
-              background 0.3s ease;
+  animation: cardFloatIn 0.42s cubic-bezier(0.2, 0.9, 0.24, 1);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18px 22px, rgba(255, 79, 163, 0.2) 0 4px, transparent 5px),
+    radial-gradient(circle at calc(100% - 28px) 32px, rgba(130, 240, 216, 0.32) 0 5px, transparent 6px),
+    linear-gradient(120deg, transparent 18%, rgba(255, 255, 255, 0.72) 38%, transparent 58%);
+  background-size: auto, auto, 180px 100%;
+  background-repeat: no-repeat;
+  opacity: 0.75;
+}
+
+.card::after {
+  content: '✦';
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  color: rgba(255, 79, 163, 0.18);
+  font-size: 2.3rem;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-5px) rotate(0.25deg);
   box-shadow: var(--shadow-hover);
+  border-color: rgba(255, 255, 255, 0.95);
 }
 
-.correctAnim { animation: correctPop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.wrongAnim   { animation: wrongShake 0.38s ease-out; }
+.card:hover::before {
+  animation: sparkleSweep 1.2s ease both;
+}
 
-/* ── 卡片头部 ────────────────────────────────── */
+.correctAnim { animation: correctPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), softPulse 0.7s ease; }
+.wrongAnim { animation: wrongShake 0.42s ease-out; }
+
 .cardHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  gap: 12px;
 }
 
 .cardLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
-  font-style: normal;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  color: var(--accent-strong, var(--accent));
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 152, 205, 0.38);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 6px 18px rgba(255, 79, 163, 0.12);
 }
 
-.title {}
+.cardLabel::before { content: '♡'; color: var(--gold); }
 
-/* ── 大题目数字 ─────────────────────────────── */
 .questionText {
-  font-size: 1.9rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  padding: 14px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff4fa3, #ff8bc7 52%, #9f7cff);
+  border: 3px solid rgba(255, 255, 255, 0.72);
+  border-radius: 26px;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  font-weight: 900;
   line-height: 1;
-  animation: slideInRight 0.22s ease-out;
+  text-shadow: 0 2px 0 rgba(155, 40, 100, 0.18);
+  box-shadow: 0 18px 42px rgba(255, 79, 163, 0.28);
+  animation: cardFloatIn 0.32s ease-out;
 }
 
-/* ── 输入区域 ────────────────────────────────── */
-.inputGroup {
+.inputGroup,
+.explanationGroup {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 12px;
   width: 100%;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.78);
+  border: 2px solid rgba(255, 152, 205, 0.52);
+  border-radius: var(--radius-input);
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 10px 24px rgba(255, 79, 163, 0.08);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background 0.18s ease;
 }
 
 .input {
-  width: 100%;
-  padding: 11px 16px;
-  font-size: 1rem;
-  font-family: 'Lora', 'LXGW WenKai', serif;
-  background: var(--bg-inset);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-input);
-  color: var(--text);
+  padding: 13px 16px;
+  font-size: 1.05rem;
+  font-weight: 800;
   text-align: center;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s, border-radius 0.3s;
-}
-
-.input:focus {
-  border-color: var(--accent);
-  background: var(--bg-card);
 }
 
 .textarea {
-  width: 100%;
-  padding: 11px 14px;
-  font-size: 0.93rem;
-  font-family: 'Lora', 'LXGW WenKai', serif;
-  background: var(--bg-inset);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-input);
-  color: var(--text);
-  outline: none;
-  resize: none;
-  transition: border-color 0.15s, background 0.15s, border-radius 0.3s;
-  line-height: 1.7;
+  min-height: 104px;
+  padding: 13px 15px;
+  resize: vertical;
+  font-size: 0.98rem;
+  line-height: 1.72;
 }
 
+.input:focus,
 .textarea:focus {
   border-color: var(--accent);
-  background: var(--bg-card);
+  background: #fff;
+  box-shadow: 0 0 0 5px rgba(255, 79, 163, 0.14), 0 14px 30px rgba(255, 79, 163, 0.14);
+  transform: translateY(-1px);
 }
 
-/* ── 按钮 ────────────────────────────────────── */
-.btn {
-  padding: 11px 28px;
-  font-size: 0.93rem;
-  font-weight: 600;
-  font-family: 'Lora', 'LXGW WenKai', serif;
-  background: var(--accent);
-  color: #f7f4ef;
-  border: none;
-  border-radius: var(--radius-btn);
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s, border-radius 0.3s, background 0.3s;
-}
-
-.btn:hover  { opacity: 0.85; }
-.btn:active { transform: scale(0.97); }
-
-.btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-/* ── 确认按钮（右上角对号） ──────────────────── */
+.btn,
 .confirmBtn {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #f7f4ef;
-  border: none;
-  font-size: 0.95rem;
-  line-height: 1;
+  color: #fff;
+  background: linear-gradient(135deg, #ff4fa3, #ff7fc0 52%, #9f7cff);
+  border: 0;
   cursor: pointer;
-  display: flex;
+  box-shadow: 0 12px 28px rgba(255, 79, 163, 0.28);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.btn {
+  align-self: center;
+  min-width: 144px;
+  padding: 12px 24px;
+  border-radius: var(--radius-btn);
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.btn:hover,
+.confirmBtn:hover {
+  filter: brightness(1.05) saturate(1.08);
+  transform: translateY(-2px) scale(1.025);
+  box-shadow: 0 16px 34px rgba(255, 79, 163, 0.34);
+}
+
+.btn:active,
+.confirmBtn:active { transform: scale(0.94); }
+.btn:disabled,
+.confirmBtn:disabled { opacity: 0.42; cursor: not-allowed; transform: none; }
+
+.confirmBtn {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: opacity 0.15s, transform 0.1s, background 0.3s;
-}
-.confirmBtn:hover  { opacity: 0.85; }
-.confirmBtn:active { transform: scale(0.92); }
-.confirmBtn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-
-.error {
-  color: var(--red);
-  font-size: 0.85rem;
-  margin: 0;
+  border-radius: 50%;
+  font-size: 1.05rem;
+  font-weight: 900;
 }
 
+.error,
 .wrongHint {
   color: var(--red);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 800;
   margin: 0;
+  text-align: center;
 }
 
-.explanationGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  animation: fadeIn 0.25s ease-out;
-}
+.wrongHint::before { content: '✧ '; color: var(--gold); }
 
 .correctAnswer {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--green);
   margin: 0;
+  color: var(--green);
+  font-size: 1.04rem;
+  font-weight: 900;
+  text-align: center;
 }
+
+.correctAnswer::before { content: '✦ '; }
 
 .explanation {
-  font-size: 0.88rem;
-  color: var(--text-secondary);
-  text-align: center;
   margin: 0;
-  line-height: 1.8;
+  color: var(--text-secondary);
+  font-size: 0.94rem;
+  line-height: 1.78;
+  text-align: center;
 }
 
-
 .referenceBox {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  background: var(--bg-inset);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
-  padding: 11px 14px;
-  box-sizing: border-box;
-  transition: border-radius 0.3s, border-color 0.3s, background 0.3s;
+  padding: 14px 15px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 152, 205, 0.48);
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(255, 79, 163, 0.1);
 }
 
 .referenceLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0 0 6px;
+  margin: 0 0 7px;
+  color: var(--accent-strong, var(--accent));
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .referenceText {
-  color: var(--text);
-  font-size: 0.92rem;
-  line-height: 1.75;
   margin: 0 0 8px;
+  color: var(--text);
+  font-size: 0.94rem;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+@media (max-width: 600px) {
+  .card {
+    min-height: 210px;
+    padding: 16px 14px 18px;
+    gap: 13px;
+    border-radius: 22px;
+  }
+  .card:hover { transform: none; }
+  .questionText { font-size: clamp(1.55rem, 8vw, 2.2rem); border-radius: 22px; }
+  .btn { width: 100%; min-width: 0; }
+}
+@media (max-width: 600px) {
+  .container,
+  .card,
+  .inputGroup,
+  .explanationGroup,
+  .referenceBox {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .card {
+    overflow: hidden;
+  }
 }

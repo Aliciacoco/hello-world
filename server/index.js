@@ -813,12 +813,23 @@ function writeBank(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2))
 }
 
-function selectPracticePool(bank, excludeId) {
-  const available = excludeId && bank.length > 1
-    ? bank.filter(q => String(q.id) !== String(excludeId))
-    : bank
-  const unpracticed = available.filter(q => !Array.isArray(q.reviews) || q.reviews.length === 0)
-  return unpracticed.length > 0 ? unpracticed : available
+function normalizeExcludeIds(excludeIds) {
+  if (Array.isArray(excludeIds)) return excludeIds.flatMap(normalizeExcludeIds)
+  return String(excludeIds || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean)
+}
+
+// 按顺序取下一道题：找到 excludeId 在题库中的位置，返回紧接其后的那道（末尾绕回开头）。
+// 若没有 excludeId（第一次加载），返回第一道。
+function selectNextInOrder(bank, excludeId) {
+  if (bank.length === 0) return null
+  const id = String(excludeId || '').trim()
+  if (!id) return bank[0]
+  const idx = bank.findIndex(q => String(q.id) === id)
+  if (idx === -1) return bank[0]
+  return bank[(idx + 1) % bank.length]
 }
 
 function createReviewRecord(body) {
@@ -919,8 +930,9 @@ app.get('/api/bank/math/random', (req, res) => {
   const bank = readBank(MATH_BANK_FILE)
   const choiceBank = bank.filter(hasChoiceOptions)
   if (choiceBank.length === 0) return res.status(404).json({ error: 'No choice questions available' })
-  const pool = selectPracticePool(choiceBank, req.query.exclude)
-  res.json(pool[Math.floor(Math.random() * pool.length)])
+  const q = selectNextInOrder(choiceBank, req.query.exclude)
+  if (!q) return res.status(404).json({ error: 'No choice questions available' })
+  res.json(q)
 })
 
 app.post('/api/bank/math', async (req, res) => {
@@ -962,8 +974,9 @@ app.patch('/api/bank/math/:id/review', (req, res) => {
 app.get('/api/bank/idiom/random', (req, res) => {
   const bank = readBank(IDIOM_BANK_FILE)
   if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-  const pool = selectPracticePool(bank, req.query.exclude)
-  res.json(pool[Math.floor(Math.random() * pool.length)])
+  const q = selectNextInOrder(bank, req.query.exclude)
+  if (!q) return res.status(404).json({ error: '题库为空，请先上传题目' })
+  res.json(q)
 })
 
 app.post('/api/bank/idiom', async (req, res) => {
@@ -1013,8 +1026,9 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
     const bank = readBank(file)
     if (bank.length === 0) return res.status(404).json({ error: '题库为空，请先上传题目' })
-    const pool = selectPracticePool(bank, req.query.exclude)
-    res.json(pool[Math.floor(Math.random() * pool.length)])
+    const q = selectNextInOrder(bank, req.query.exclude)
+    if (!q) return res.status(404).json({ error: '题库为空，请先上传题目' })
+    res.json(q)
   })
 
   app.get(`/api/bank/${prefix}`, (req, res) => {

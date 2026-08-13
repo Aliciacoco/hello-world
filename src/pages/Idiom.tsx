@@ -22,6 +22,8 @@ interface JudgeResult {
   _balance?: number
 }
 
+const IDIOM_CURRENT_KEY = 'idiom_current'
+
 export default function Idiom() {
   const [mode, setMode] = useState<Mode>('practice')
 
@@ -47,9 +49,12 @@ export default function Idiom() {
     setJudgeResult(null)
     setPhase('question')
     setEmptyBank(false)
+    if (force) {
+      sessionStorage.removeItem(IDIOM_CURRENT_KEY)
+    }
     // 刷新页面时保持同一道题，除非主动点"下一题"
     if (!force) {
-      const cached = sessionStorage.getItem('idiom_current')
+      const cached = sessionStorage.getItem(IDIOM_CURRENT_KEY)
       if (cached) {
         try {
           setQuestion(JSON.parse(cached))
@@ -66,7 +71,7 @@ export default function Idiom() {
       if (res.status === 404) { setEmptyBank(true); return }
       if (!res.ok) throw new Error()
       const q = await res.json()
-      sessionStorage.setItem('idiom_current', JSON.stringify(q))
+      sessionStorage.setItem(IDIOM_CURRENT_KEY, JSON.stringify(q))
       setQuestion(q)
     } catch {
       setError('获取题目失败，请重试')

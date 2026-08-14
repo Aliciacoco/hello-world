@@ -143,6 +143,21 @@
   background: var(--green);
 }
 
+.mockBtn {
+  background: var(--accent);
+  color: #f7f4ef;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 2px;
+}
+.mockBtn:hover    { opacity: 0.85; }
+.mockBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ── Tabs ────────────────────────────────────── */
 .tabs {
   display: flex;
@@ -199,6 +214,7 @@
 .legendDone    { background: var(--green); }
 .legendPartial { background: #f0a030; }
 .legendMiss    { background: var(--bg-inset); border: 1px solid var(--border); }
+.legendSat     { background: #e8d5f8; border: 1px solid #c49de0; }
 .legendExam    { background: var(--accent); }
 
 /* ── 日历格子 ────────────────────────────────── */
@@ -260,8 +276,17 @@
 
 .calDayFuture {
   background: transparent;
-  opacity: 0.3;
+  opacity: 0.35;
 }
+
+/* 未来的周六格子：淡紫色，提示有套题 */
+.calDaySatFuture {
+  background: #f0e8fb;
+  border: 1px solid #d0b0f0;
+  opacity: 0.7;
+}
+.calDaySatFuture .calDate { color: #9060c0; font-weight: 600; }
+.calDaySatFuture .calDot  { font-size: 0.75rem; }
 
 .calDayExam {
   background: var(--accent);
@@ -276,6 +301,15 @@
 }
 
 /* ── 配置面板 ─────────────────────────────────── */
+.configNote {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 .configPanel {
   display: flex;
   flex-direction: column;

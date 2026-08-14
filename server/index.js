@@ -1403,10 +1403,12 @@ normalizeMathBankChoices()
 const CHECKIN_DATA_FILE   = path.join(DATA_DIR, 'daily_checkin.json')
 const CHECKIN_CONFIG_FILE = path.join(DATA_DIR, 'checkin_config.json')
 
+// mock（套题）只有周六有
 const CHECKIN_TASK_KEYS = [
   'speed', 'idiom', 'changshi', 'shenlun',
   'math_practice', 'math_upload',
   'analysis_practice', 'analysis_upload',
+  'mock',
 ]
 
 const DEFAULT_CHECKIN_CONFIG = {
@@ -1415,6 +1417,7 @@ const DEFAULT_CHECKIN_CONFIG = {
     speed: 20, idiom: 20, changshi: 20, shenlun: 1,
     math_practice: 10, math_upload: 10,
     analysis_practice: 10, analysis_upload: 10,
+    mock: 1,
   },
 }
 
@@ -1422,6 +1425,21 @@ const DEFAULT_CHECKIN_CONFIG = {
 function getCheckinTodayKey() {
   const d = new Date(Date.now() + 8 * 3600 * 1000)
   return d.toISOString().slice(0, 10)
+}
+
+// dateStr 是 'YYYY-MM-DD'，判断是否为周六（CST）
+function isSaturdayDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  // 使用 UTC noon 规避时区偏差
+  return new Date(Date.UTC(y, m - 1, d, 4)).getUTCDay() === 6
+}
+
+// dateStr 往后偏移 n 天
+function addCheckinDays(dateStr, n) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  date.setUTCDate(date.getUTCDate() + n)
+  return date.toISOString().slice(0, 10)
 }
 
 function readCheckinData() {
@@ -1450,13 +1468,17 @@ function emptyCheckinDay() {
     speed: 0, idiom: 0, changshi: 0, shenlun: 0,
     math_practice: 0, math_upload: 0,
     analysis_practice: 0, analysis_upload: 0,
+    mock: 0,
     completed: false, completedAt: null,
   }
 }
 
-function maybeMarkComplete(dayData, targets) {
+// 判断当天是否全部完成：mock 仅在周六纳入判断
+function maybeMarkComplete(dayData, targets, dateStr) {
   if (dayData.completed) return dayData
-  const allDone = CHECKIN_TASK_KEYS.every(k => (dayData[k] || 0) >= (targets[k] || 0))
+  const isSat = isSaturdayDate(dateStr)
+  const relevant = CHECKIN_TASK_KEYS.filter(k => k !== 'mock' || isSat)
+  const allDone = relevant.every(k => (dayData[k] || 0) >= (targets[k] || 0))
   if (allDone) {
     dayData.completed = true
     dayData.completedAt = new Date().toISOString()
@@ -1470,7 +1492,13 @@ app.get('/api/checkin/today', (req, res) => {
   const data  = readCheckinData()
   const cfg   = readCheckinConfig()
   if (!data[today]) data[today] = emptyCheckinDay()
-  res.json({ date: today, progress: data[today], targets: cfg.targets, config: cfg })
+  res.json({
+    date: today,
+    progress: data[today],
+    targets: cfg.targets,
+    config: cfg,
+    isSaturday: isSaturdayDate(today),
+  })
 })
 
 // POST /api/checkin/increment  body: { task: string }
@@ -1478,40 +1506,59 @@ app.post('/api/checkin/increment', (req, res) => {
   const { task } = req.body
   if (!CHECKIN_TASK_KEYS.includes(task)) return res.status(400).json({ error: '无效任务' })
   const today = getCheckinTodayKey()
-  const data  = readCheckinData()
-  const cfg   = readCheckinConfig()
+  // mock 只允许在周六打卡
+  if (task === 'mock' && !isSaturdayDate(today)) {
+    return res.status(400).json({ error: '套题只有周六才能打卡' })
+  }
+  const data = readCheckinData()
+  const cfg  = readCheckinConfig()
   if (!data[today]) data[today] = emptyCheckinDay()
   data[today][task] = (data[today][task] || 0) + 1
-  data[today] = maybeMarkComplete(data[today], cfg.targets)
+  data[today] = maybeMarkComplete(data[today], cfg.targets, today)
   writeCheckinData(data)
-  res.json({ date: today, progress: data[today], targets: cfg.targets, config: cfg })
+  res.json({
+    date: today,
+    progress: data[today],
+    targets: cfg.targets,
+    config: cfg,
+    isSaturday: isSaturdayDate(today),
+  })
 })
 
-// GET /api/checkin/history?days=60
+// GET /api/checkin/history
+// 返回今天 → 最近一个考试日（无考试日则返回今天后 60 天）的日历格子
+// 以及从历史存档算出的连续打卡天数
 app.get('/api/checkin/history', (req, res) => {
-  const days  = Math.min(parseInt(req.query.days || '60', 10), 365)
   const data  = readCheckinData()
   const cfg   = readCheckinConfig()
   const today = getCheckinTodayKey()
-  const result = []
-  const base   = new Date(Date.now() + 8 * 3600 * 1000)
-  for (let i = days - 1; i >= 0; i--) {
-    const d   = new Date(base)
-    d.setUTCDate(d.getUTCDate() - i)
-    const key = d.toISOString().slice(0, 10)
-    result.push({ date: key, ...(data[key] || emptyCheckinDay()) })
+
+  // 终止日期：最近的未来考试日（含今天），否则 60 天后
+  const futureExams = cfg.examDates.filter(d => d >= today).sort()
+  const endDate = futureExams.length > 0 ? futureExams[0] : addCheckinDays(today, 60)
+
+  // 构建 today → endDate 的日历
+  const calendar = []
+  let cur = today
+  while (cur <= endDate) {
+    calendar.push({
+      date: cur,
+      isSaturday: isSaturdayDate(cur),
+      ...(data[cur] || emptyCheckinDay()),
+    })
+    cur = addCheckinDays(cur, 1)
   }
 
-  // 连续打卡天数：从今天往前数，跳过今天未完成的情况
+  // 连续打卡天数：从历史存档往前找，跳过今天未完成的情况
   let streak = 0
-  for (let i = result.length - 1; i >= 0; i--) {
-    const day = result[i]
-    if (day.date === today && !day.completed) continue // 今天还没完成，不中断
-    if (day.completed) streak++
-    else break
+  let check = today
+  if (!data[today]?.completed) check = addCheckinDays(today, -1)
+  while (data[check]?.completed) {
+    streak++
+    check = addCheckinDays(check, -1)
   }
 
-  res.json({ history: result, streak, config: cfg })
+  res.json({ calendar, streak, config: cfg })
 })
 
 // GET /api/checkin/config

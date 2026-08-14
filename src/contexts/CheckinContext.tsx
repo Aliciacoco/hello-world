@@ -20,15 +20,26 @@ const UPLOAD_TASK_MAP: Record<string, TaskKey> = {
 interface CheckinCtx {
   today: TodayResponse | null
   refresh: () => void
+  /** 手动增加某任务进度（供套题等手动打卡按钮调用） */
+  increment: (task: TaskKey) => Promise<void>
 }
 
-const CheckinContext = createContext<CheckinCtx>({ today: null, refresh: () => {} })
+const CheckinContext = createContext<CheckinCtx>({
+  today: null,
+  refresh: () => {},
+  increment: async () => {},
+})
 
 export function CheckinProvider({ children }: { children: ReactNode }) {
   const [today, setToday] = useState<TodayResponse | null>(null)
 
   const refresh = useCallback(() => {
     fetchTodayCheckin().then(setToday).catch(() => {})
+  }, [])
+
+  const increment = useCallback(async (task: TaskKey) => {
+    const res = await incrementTask(task)
+    setToday(res)
   }, [])
 
   // 首次加载
@@ -59,7 +70,7 @@ export function CheckinProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <CheckinContext.Provider value={{ today, refresh }}>
+    <CheckinContext.Provider value={{ today, refresh, increment }}>
       {children}
     </CheckinContext.Provider>
   )

@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   fetchHistory, saveCheckinConfig,
-  TASK_LABELS, ALL_TASK_KEYS,
-  HistoryDay, CheckinConfig, calcExamCountdown,
+  TASK_LABELS, getActiveTasks,
+  CalendarDay, CheckinConfig, calcExamCountdown,
 } from '../utils/checkin'
 import { useCheckin } from '../contexts/CheckinContext'
 import styles from './CheckinPage.module.css'
@@ -13,33 +13,54 @@ function formatDate(d: string) {
   return `${parseInt(m)}/${parseInt(day)}`
 }
 
-function getWeekday(d: string) {
-  const days = ['日', '一', '二', '三', '四', '五', '六']
-  return days[new Date(d + 'T00:00:00').getDay()]
+function getWeekdayLabel(d: string) {
+  return ['日', '一', '二', '三', '四', '五', '六'][new Date(d + 'T00:00:00').getDay()]
 }
 
 // ── 今日进度卡 ────────────────────────────────────────────────────
 function TodayCard() {
-  const { today } = useCheckin()
+  const { today, increment } = useCheckin()
+  const [mockLoading, setMockLoading] = useState(false)
+
   if (!today) return <p className={styles.loading}>加载中...</p>
 
-  const { progress, targets } = today
+  const { progress, targets, isSaturday } = today
+  const activeTasks = getActiveTasks(today.date)
+
+  const handleMock = async () => {
+    if (mockLoading || (progress.mock || 0) >= targets.mock) return
+    setMockLoading(true)
+    try { await increment('mock') } finally { setMockLoading(false) }
+  }
+
   return (
     <div className={styles.todayGrid}>
-      {ALL_TASK_KEYS.map(key => {
-        const cur  = progress[key] || 0
-        const max  = targets[key]  || 1
-        const done = cur >= max
-        const pct  = Math.min(cur / max, 1)
+      {activeTasks.map(key => {
+        const cur    = progress[key] || 0
+        const max    = targets[key]  || 1
+        const done   = cur >= max
+        const pct    = Math.min(cur / max, 1)
+        const isMock = key === 'mock'
         return (
           <div key={key} className={`${styles.todayItem} ${done ? styles.todayItemDone : ''}`}>
             <div className={styles.todayItemHeader}>
               <span className={styles.todayItemLabel}>{TASK_LABELS[key]}</span>
-              <span className={styles.todayItemCount}>{done ? '✅' : `${cur} / ${max}`}</span>
+              <span className={styles.todayItemCount}>
+                {done ? '✅' : `${cur} / ${max}`}
+              </span>
             </div>
             <div className={styles.barTrack}>
               <div className={styles.barFill} style={{ width: `${pct * 100}%` }} />
             </div>
+            {isMock && isSaturday && !done && (
+              <button
+                className={styles.mockBtn}
+                onClick={handleMock}
+                disabled={mockLoading}
+              >
+                {mockLoading ? '打卡中...' : '✓ 完成今日套题'}
+              </button>
+            )}
           </div>
         )
       })}
@@ -47,31 +68,45 @@ function TodayCard() {
   )
 }
 
-// ── 日历格子 ──────────────────────────────────────────────────────
-function CalendarGrid({ history, examDates }: { history: HistoryDay[]; examDates: string[] }) {
-  const today = new Date().toISOString().slice(0, 10)
+// ── 日历格子（今天 → 考试日）────────────────────────────────────────
+function CalendarGrid({ calendar, examDates }: { calendar: CalendarDay[]; examDates: string[] }) {
+  const today  = new Date().toISOString().slice(0, 10)
   const examSet = new Set(examDates)
+
+  if (calendar.length === 0) {
+    return <p className={styles.loading}>暂无考试日期，请在配置中设置</p>
+  }
 
   return (
     <div className={styles.calendar}>
-      {history.map(day => {
+      {calendar.map(day => {
         const isToday  = day.date === today
         const isExam   = examSet.has(day.date)
         const isFuture = day.date > today
-        const doneCount = ALL_TASK_KEYS.filter(k => (day[k] || 0) > 0).length
+        const activeTasks = getActiveTasks(day.date)
+        const doneCount   = activeTasks.filter(k => (day[k] || 0) > 0).length
+
         let cls = styles.calDay
-        if (isExam)        cls += ' ' + styles.calDayExam
-        else if (isFuture) cls += ' ' + styles.calDayFuture
-        else if (day.completed) cls += ' ' + styles.calDayDone
-        else if (isToday)  cls += ' ' + styles.calDayToday
-        else if (doneCount > 0) cls += ' ' + styles.calDayPartial
-        else               cls += ' ' + styles.calDayMiss
+        if (isExam)              cls += ' ' + styles.calDayExam
+        else if (isToday)        cls += ' ' + styles.calDayToday
+        else if (isFuture && day.isSaturday) cls += ' ' + styles.calDaySatFuture
+        else if (isFuture)       cls += ' ' + styles.calDayFuture
+        else if (day.completed)  cls += ' ' + styles.calDayDone
+        else if (doneCount > 0)  cls += ' ' + styles.calDayPartial
+        else                     cls += ' ' + styles.calDayMiss
 
         return (
-          <div key={day.date} className={cls} title={`${day.date}（周${getWeekday(day.date)}）`}>
+          <div
+            key={day.date}
+            className={cls}
+            title={`${day.date}（周${getWeekdayLabel(day.date)}）${day.isSaturday ? ' 📝套题' : ''}`}
+          >
             <span className={styles.calDate}>{formatDate(day.date)}</span>
-            {isExam && <span className={styles.calExamMark}>考</span>}
-            {!isExam && !isFuture && (
+            {isExam ? (
+              <span className={styles.calExamMark}>考</span>
+            ) : isFuture ? (
+              <span className={styles.calDot}>{day.isSaturday ? '📝' : '·'}</span>
+            ) : (
               <span className={styles.calDot}>
                 {day.completed ? '●' : doneCount > 0 ? '◐' : isToday ? '○' : '·'}
               </span>
@@ -85,22 +120,30 @@ function CalendarGrid({ history, examDates }: { history: HistoryDay[]; examDates
 
 // ── 配置面板 ──────────────────────────────────────────────────────
 const TARGET_LABELS: Record<string, string> = {
-  speed:            '⚡ 速算（答对题数）',
-  idiom:            '📖 成语辨析（答对题数）',
-  changshi:         '🧠 常识（答对题数）',
-  shenlun:          '✍️ 申论（完成篇数）',
-  math_practice:    '📊 数量关系·练题（答对题数）',
-  math_upload:      '📊 数量关系·录题（录入题数）',
-  analysis_practice:'📈 资料分析·练题（答对题数）',
-  analysis_upload:  '📈 资料分析·录题（录入题数）',
+  speed:             '⚡ 速算（答对题数）',
+  idiom:             '📖 成语辨析（答对题数）',
+  changshi:          '🧠 常识（答对题数）',
+  shenlun:           '✍️ 申论（完成篇数）',
+  math_practice:     '📊 数量关系·练题（答对题数）',
+  math_upload:       '📊 数量关系·录题（录入题数）',
+  analysis_practice: '📈 资料分析·练题（答对题数）',
+  analysis_upload:   '📈 资料分析·录题（录入题数）',
+  mock:              '📝 套题（套数，仅周六）',
 }
 
+const ALL_TARGET_KEYS = [
+  'speed', 'idiom', 'changshi', 'shenlun',
+  'math_practice', 'math_upload',
+  'analysis_practice', 'analysis_upload',
+  'mock',
+]
+
 function ConfigPanel({ config, onSaved }: { config: CheckinConfig; onSaved: (c: CheckinConfig) => void }) {
-  const [examDates, setExamDates]   = useState<string[]>(config.examDates)
-  const [targets,   setTargets]     = useState({ ...config.targets })
-  const [newDate,   setNewDate]     = useState('')
-  const [saving,    setSaving]      = useState(false)
-  const [msg,       setMsg]         = useState('')
+  const [examDates, setExamDates] = useState<string[]>(config.examDates)
+  const [targets,   setTargets]   = useState({ ...config.targets })
+  const [newDate,   setNewDate]   = useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [msg,       setMsg]       = useState('')
 
   const addDate = () => {
     const d = newDate.trim()
@@ -109,9 +152,7 @@ function ConfigPanel({ config, onSaved }: { config: CheckinConfig; onSaved: (c: 
     setNewDate('')
   }
 
-  const removeDate = (d: string) => {
-    setExamDates(prev => prev.filter(x => x !== d))
-  }
+  const removeDate = (d: string) => setExamDates(prev => prev.filter(x => x !== d))
 
   const handleSave = async () => {
     setSaving(true)
@@ -130,7 +171,12 @@ function ConfigPanel({ config, onSaved }: { config: CheckinConfig; onSaved: (c: 
 
   return (
     <div className={styles.configPanel}>
-      {/* 考试日期 */}
+      {/* ── 注意事项 ── */}
+      <div className={styles.configNote}>
+        ℹ️ 修改目标只影响<strong>今日及以后</strong>的完成判定；历史已打卡的记录不会改变。
+      </div>
+
+      {/* ── 考试日期 ── */}
       <div className={styles.configSection}>
         <h3 className={styles.configTitle}>考试日期</h3>
         <div className={styles.dateList}>
@@ -155,20 +201,23 @@ function ConfigPanel({ config, onSaved }: { config: CheckinConfig; onSaved: (c: 
         </div>
       </div>
 
-      {/* 每日目标 */}
+      {/* ── 每日目标 ── */}
       <div className={styles.configSection}>
         <h3 className={styles.configTitle}>每日目标</h3>
         <div className={styles.targetGrid}>
-          {ALL_TASK_KEYS.map(key => (
+          {ALL_TARGET_KEYS.map(key => (
             <div key={key} className={styles.targetRow}>
               <label className={styles.targetLabel}>{TARGET_LABELS[key]}</label>
               <input
                 type="number"
                 className={styles.targetInput}
-                value={targets[key]}
+                value={(targets as Record<string, number>)[key] ?? 0}
                 min={0}
                 max={200}
-                onChange={e => setTargets(prev => ({ ...prev, [key]: parseInt(e.target.value, 10) || 0 }))}
+                onChange={e => setTargets(prev => ({
+                  ...prev,
+                  [key]: parseInt(e.target.value, 10) || 0,
+                }))}
               />
             </div>
           ))}
@@ -187,16 +236,16 @@ function ConfigPanel({ config, onSaved }: { config: CheckinConfig; onSaved: (c: 
 
 // ── 主页面 ────────────────────────────────────────────────────────
 export default function CheckinPage() {
-  const [history,   setHistory]   = useState<HistoryDay[]>([])
-  const [streak,    setStreak]    = useState(0)
-  const [config,    setConfig]    = useState<CheckinConfig | null>(null)
-  const [loading,   setLoading]   = useState(true)
-  const [tab,       setTab]       = useState<'history' | 'config'>('history')
+  const [calendar, setCalendar] = useState<CalendarDay[]>([])
+  const [streak,   setStreak]   = useState(0)
+  const [config,   setConfig]   = useState<CheckinConfig | null>(null)
+  const [loading,  setLoading]  = useState(true)
+  const [tab,      setTab]      = useState<'history' | 'config'>('history')
 
   const load = useCallback(async () => {
     try {
-      const data = await fetchHistory(60)
-      setHistory(data.history)
+      const data = await fetchHistory()
+      setCalendar(data.calendar)
       setStreak(data.streak)
       setConfig(data.config)
     } catch { /* noop */ } finally {
@@ -237,14 +286,14 @@ export default function CheckinPage() {
         <button
           className={`${styles.tab} ${tab === 'history' ? styles.tabActive : ''}`}
           onClick={() => setTab('history')}
-        >打卡历史</button>
+        >打卡日历</button>
         <button
           className={`${styles.tab} ${tab === 'config' ? styles.tabActive : ''}`}
           onClick={() => setTab('config')}
         >目标配置</button>
       </div>
 
-      {/* ── 打卡历史 ── */}
+      {/* ── 日历（今天 → 考试日）── */}
       {tab === 'history' && (
         <section className={styles.section}>
           {loading ? (
@@ -255,11 +304,10 @@ export default function CheckinPage() {
                 <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendDone}`} />全部完成</span>
                 <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendPartial}`} />部分完成</span>
                 <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendMiss}`} />未完成</span>
-                {config && config.examDates.length > 0 && (
-                  <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendExam}`} />考试日</span>
-                )}
+                <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendSat}`} />周六·套题</span>
+                <span className={styles.legendItem}><span className={`${styles.legendDot} ${styles.legendExam}`} />考试日</span>
               </div>
-              <CalendarGrid history={history} examDates={config?.examDates ?? []} />
+              <CalendarGrid calendar={calendar} examDates={config?.examDates ?? []} />
             </>
           )}
         </section>
@@ -272,7 +320,7 @@ export default function CheckinPage() {
             config={config}
             onSaved={newCfg => {
               setConfig(newCfg)
-              load() // 刷新历史（streak 判断用 targets）
+              load()
             }}
           />
         </section>

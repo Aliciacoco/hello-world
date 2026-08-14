@@ -124,3 +124,18 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.mockBtn {
+  background: var(--accent);
+  color: #f7f4ef;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  text-align: center;
+}
+.mockBtn:hover    { opacity: 0.82; }
+.mockBtn:disabled { opacity: 0.4; cursor: not-allowed; }

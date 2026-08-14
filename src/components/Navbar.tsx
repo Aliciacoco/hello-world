@@ -13,6 +13,7 @@ export default function Navbar() {
             <li><NavLink to="/" end className={({ isActive }) => isActive ? styles.active : ''}>练习</NavLink></li>
             <li><NavLink to="/bank" className={({ isActive }) => isActive ? styles.active : ''}>题库</NavLink></li>
             <li><NavLink to="/explore" className={({ isActive }) => isActive ? styles.active : ''}>探索</NavLink></li>
+            <li><NavLink to="/checkin" className={({ isActive }) => isActive ? styles.active : ''}>打卡</NavLink></li>
           </ul>
         </div>
         <NavPoints />

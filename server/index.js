@@ -1399,6 +1399,145 @@ cleanupRemovedFeatureData()
 cleanupBankOptions()
 normalizeMathBankChoices()
 
+// ─── 打卡系统 ────────────────────────────────────────────────────────────────
+const CHECKIN_DATA_FILE   = path.join(DATA_DIR, 'daily_checkin.json')
+const CHECKIN_CONFIG_FILE = path.join(DATA_DIR, 'checkin_config.json')
+
+const CHECKIN_TASK_KEYS = [
+  'speed', 'idiom', 'changshi', 'shenlun',
+  'math_practice', 'math_upload',
+  'analysis_practice', 'analysis_upload',
+]
+
+const DEFAULT_CHECKIN_CONFIG = {
+  examDates: ['2026-09-19'],
+  targets: {
+    speed: 20, idiom: 20, changshi: 20, shenlun: 1,
+    math_practice: 10, math_upload: 10,
+    analysis_practice: 10, analysis_upload: 10,
+  },
+}
+
+// 服务器在中国时区 UTC+8
+function getCheckinTodayKey() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000)
+  return d.toISOString().slice(0, 10)
+}
+
+function readCheckinData() {
+  try { return JSON.parse(fs.readFileSync(CHECKIN_DATA_FILE, 'utf8')) } catch { return {} }
+}
+function writeCheckinData(data) {
+  fs.writeFileSync(CHECKIN_DATA_FILE, JSON.stringify(data, null, 2))
+}
+
+function readCheckinConfig() {
+  try {
+    const stored = JSON.parse(fs.readFileSync(CHECKIN_CONFIG_FILE, 'utf8'))
+    return {
+      ...DEFAULT_CHECKIN_CONFIG,
+      ...stored,
+      targets: { ...DEFAULT_CHECKIN_CONFIG.targets, ...(stored.targets || {}) },
+    }
+  } catch { return { ...DEFAULT_CHECKIN_CONFIG, targets: { ...DEFAULT_CHECKIN_CONFIG.targets } } }
+}
+function writeCheckinConfig(cfg) {
+  fs.writeFileSync(CHECKIN_CONFIG_FILE, JSON.stringify(cfg, null, 2))
+}
+
+function emptyCheckinDay() {
+  return {
+    speed: 0, idiom: 0, changshi: 0, shenlun: 0,
+    math_practice: 0, math_upload: 0,
+    analysis_practice: 0, analysis_upload: 0,
+    completed: false, completedAt: null,
+  }
+}
+
+function maybeMarkComplete(dayData, targets) {
+  if (dayData.completed) return dayData
+  const allDone = CHECKIN_TASK_KEYS.every(k => (dayData[k] || 0) >= (targets[k] || 0))
+  if (allDone) {
+    dayData.completed = true
+    dayData.completedAt = new Date().toISOString()
+  }
+  return dayData
+}
+
+// GET /api/checkin/today
+app.get('/api/checkin/today', (req, res) => {
+  const today = getCheckinTodayKey()
+  const data  = readCheckinData()
+  const cfg   = readCheckinConfig()
+  if (!data[today]) data[today] = emptyCheckinDay()
+  res.json({ date: today, progress: data[today], targets: cfg.targets, config: cfg })
+})
+
+// POST /api/checkin/increment  body: { task: string }
+app.post('/api/checkin/increment', (req, res) => {
+  const { task } = req.body
+  if (!CHECKIN_TASK_KEYS.includes(task)) return res.status(400).json({ error: '无效任务' })
+  const today = getCheckinTodayKey()
+  const data  = readCheckinData()
+  const cfg   = readCheckinConfig()
+  if (!data[today]) data[today] = emptyCheckinDay()
+  data[today][task] = (data[today][task] || 0) + 1
+  data[today] = maybeMarkComplete(data[today], cfg.targets)
+  writeCheckinData(data)
+  res.json({ date: today, progress: data[today], targets: cfg.targets, config: cfg })
+})
+
+// GET /api/checkin/history?days=60
+app.get('/api/checkin/history', (req, res) => {
+  const days  = Math.min(parseInt(req.query.days || '60', 10), 365)
+  const data  = readCheckinData()
+  const cfg   = readCheckinConfig()
+  const today = getCheckinTodayKey()
+  const result = []
+  const base   = new Date(Date.now() + 8 * 3600 * 1000)
+  for (let i = days - 1; i >= 0; i--) {
+    const d   = new Date(base)
+    d.setUTCDate(d.getUTCDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    result.push({ date: key, ...(data[key] || emptyCheckinDay()) })
+  }
+
+  // 连续打卡天数：从今天往前数，跳过今天未完成的情况
+  let streak = 0
+  for (let i = result.length - 1; i >= 0; i--) {
+    const day = result[i]
+    if (day.date === today && !day.completed) continue // 今天还没完成，不中断
+    if (day.completed) streak++
+    else break
+  }
+
+  res.json({ history: result, streak, config: cfg })
+})
+
+// GET /api/checkin/config
+app.get('/api/checkin/config', (req, res) => {
+  res.json(readCheckinConfig())
+})
+
+// POST /api/checkin/config  body: { examDates?, targets? }
+app.post('/api/checkin/config', (req, res) => {
+  const { examDates, targets } = req.body
+  const cfg = readCheckinConfig()
+  if (Array.isArray(examDates)) {
+    cfg.examDates = examDates.filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d))
+  }
+  if (targets && typeof targets === 'object') {
+    for (const k of CHECKIN_TASK_KEYS) {
+      if (targets[k] != null) {
+        const v = parseInt(targets[k], 10)
+        if (!isNaN(v) && v >= 0) cfg.targets[k] = v
+      }
+    }
+  }
+  writeCheckinConfig(cfg)
+  res.json(cfg)
+})
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })

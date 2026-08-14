@@ -55,6 +55,7 @@ export default function ShenlunCard() {
       if (!res.ok) throw new Error()
       const data: JudgeResult = await res.json()
       setResult(data)
+      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: true, activity: 'practice', bankType: 'shenlun' } }))
       setPhase('result')
     } catch {
       setError('批改失败，请重试')

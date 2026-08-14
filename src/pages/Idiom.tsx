@@ -96,10 +96,10 @@ export default function Idiom() {
       if (!res.ok) throw new Error()
       const result: JudgeResult = await res.json()
       setJudgeResult(result)
-      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: result.correct, activity: 'practice' } }))
+      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: result.correct, activity: 'practice', bankType: 'idiom' } }))
       if (result.correct && result._pts != null && result._balance != null) {
         window.dispatchEvent(new CustomEvent('points-earned', {
-          detail: { amount: result._pts, balance: result._balance, activity: 'practice' },
+          detail: { amount: result._pts, balance: result._balance, activity: 'practice', bankType: 'idiom' },
         }))
       }
       if (!result.correct) {

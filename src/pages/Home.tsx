@@ -3,12 +3,14 @@ import FractionPractice from './FractionPractice'
 import IdiomCard from './Idiom'
 import ExamCard from './ExamCard'
 import ShenlunCard from './Shenlun'
+import DailyCheckin from '../components/DailyCheckin'
 import styles from './Home.module.css'
 
 export default function Home() {
   return (
     <div className={styles.page}>
       <div className={styles.grid}>
+        <DailyCheckin />
       <div className={styles.speedRow}>
         <PracticeCard />
         <FractionPractice />

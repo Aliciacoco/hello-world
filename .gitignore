@@ -16,3 +16,5 @@ server/shenlun_bank.json
 server/points.json
 server/theme_images.json
 server/theme-images/
+server/daily_checkin.json
+server/checkin_config.json

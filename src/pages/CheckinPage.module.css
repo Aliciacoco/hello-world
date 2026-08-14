@@ -1,0 +1,425 @@
+.page {
+  min-height: 100vh;
+  padding: 72px 20px 60px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.loading {
+  color: var(--text-tertiary);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* ── 页头 ────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.streakBadge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #fff3e0;
+  color: #e65100;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.examCountdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.examLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.examDays {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* ── Section ─────────────────────────────────── */
+.section {
+  margin-bottom: 28px;
+}
+
+.sectionTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+/* ── 今日进度格子 ─────────────────────────────── */
+.todayGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .todayGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 380px) {
+  .todayGrid { grid-template-columns: 1fr; }
+}
+
+.todayItem {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.todayItemDone {
+  border-color: var(--green);
+  background: color-mix(in srgb, var(--bg-card) 90%, var(--green));
+}
+
+.todayItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.todayItemLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.todayItemCount {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.barTrack {
+  width: 100%;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.todayItemDone .barFill {
+  background: var(--green);
+}
+
+/* ── Tabs ────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.tab:hover { color: var(--text); }
+
+.tabActive {
+  color: var(--accent) !important;
+  font-weight: 700;
+  border-bottom-color: var(--accent) !important;
+}
+
+/* ── 图例 ────────────────────────────────────── */
+.legendRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.legendDone    { background: var(--green); }
+.legendPartial { background: #f0a030; }
+.legendMiss    { background: var(--bg-inset); border: 1px solid var(--border); }
+.legendExam    { background: var(--accent); }
+
+/* ── 日历格子 ────────────────────────────────── */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 700px) {
+  .calendar { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (max-width: 420px) {
+  .calendar { grid-template-columns: repeat(5, 1fr); }
+}
+
+.calDay {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  gap: 1px;
+  position: relative;
+}
+
+.calDate {
+  font-size: 0.58rem;
+  color: var(--text-tertiary);
+  line-height: 1;
+}
+
+.calDot { font-size: 0.7rem; line-height: 1; }
+
+.calDayDone {
+  background: color-mix(in srgb, var(--bg-inset) 40%, var(--green));
+}
+.calDayDone .calDot   { color: var(--green); }
+
+.calDayPartial {
+  background: color-mix(in srgb, var(--bg-inset) 55%, #f0a030);
+}
+.calDayPartial .calDot { color: #c07820; }
+
+.calDayMiss {
+  background: var(--bg-inset);
+}
+.calDayMiss .calDot { color: var(--text-tertiary); }
+
+.calDayToday {
+  background: var(--accent-light);
+  border: 1.5px solid var(--accent);
+}
+.calDayToday .calDate { color: var(--accent); font-weight: 700; }
+.calDayToday .calDot  { color: var(--accent); }
+
+.calDayFuture {
+  background: transparent;
+  opacity: 0.3;
+}
+
+.calDayExam {
+  background: var(--accent);
+}
+.calDayExam .calDate    { color: rgba(255,255,255,0.9); font-weight: 700; }
+.calDayExam .calDot     { color: white; }
+
+.calExamMark {
+  font-size: 0.58rem;
+  color: white;
+  font-weight: 700;
+}
+
+/* ── 配置面板 ─────────────────────────────────── */
+.configPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.configSection {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+}
+
+.configTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+
+/* 考试日期 */
+.dateList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  min-height: 24px;
+}
+
+.emptyHint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.dateChip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.dateRemove {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0 0 2px;
+  opacity: 0.7;
+}
+.dateRemove:hover { opacity: 1; }
+
+.dateAddRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dateInput {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg-inset);
+  outline: none;
+}
+.dateInput:focus { border-color: var(--accent); }
+
+.addBtn {
+  background: var(--accent);
+  color: #f7f4ef;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.addBtn:hover { opacity: 0.85; }
+
+/* 目标数量 */
+.targetGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.targetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.targetLabel {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.targetInput {
+  width: 64px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: 4px 8px;
+  font-size: 0.88rem;
+  color: var(--text);
+  background: var(--bg-inset);
+  outline: none;
+}
+.targetInput:focus { border-color: var(--accent); }
+
+/* 保存按钮 */
+.saveRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.saveMsg {
+  font-size: 0.82rem;
+  color: var(--green);
+}
+
+.saveBtn {
+  background: var(--accent);
+  color: #f7f4ef;
+  border: none;
+  border-radius: var(--radius-btn);
+  padding: 9px 22px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.saveBtn:hover    { opacity: 0.85; }
+.saveBtn:disabled { opacity: 0.4; cursor: not-allowed; }

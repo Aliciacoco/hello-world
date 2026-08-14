@@ -55,7 +55,8 @@ export default function ShenlunCard() {
       if (!res.ok) throw new Error()
       const data: JudgeResult = await res.json()
       setResult(data)
-      window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: true, activity: 'practice', bankType: 'shenlun' } }))
+      const pts = Math.round(data.score * 0.5 * 10) / 10
+      window.dispatchEvent(new CustomEvent('points-earned', { detail: { amount: pts, activity: 'practice', bankType: 'shenlun' } }))
       setPhase('result')
     } catch {
       setError('批改失败，请重试')

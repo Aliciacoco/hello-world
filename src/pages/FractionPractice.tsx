@@ -43,7 +43,7 @@ export default function FractionPractice() {
     if (userAnswer === correct) {
       window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: true, activity: 'practice', bankType: 'speed' } }))
       setCardAnim('correct')
-      setTimeout(() => { setCardAnim(''); earnPoints(0.1, '分数速算答对'); setPhase('correct') }, 360)
+      setTimeout(() => { setCardAnim(''); earnPoints(0.1, '分数速算答对', 'practice', 'speed'); setPhase('correct') }, 360)
     } else {
       window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: false, activity: 'practice', bankType: 'speed' } }))
       setCardAnim('wrong')

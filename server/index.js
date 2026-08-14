@@ -1411,13 +1411,19 @@ const CHECKIN_TASK_KEYS = [
   'mock',
 ]
 
+// targets 单位：积分（mock 除外，mock 是手动套数）
 const DEFAULT_CHECKIN_CONFIG = {
   examDates: ['2026-09-19'],
   targets: {
-    speed: 20, idiom: 20, changshi: 20, shenlun: 1,
-    math_practice: 10, math_upload: 10,
-    analysis_practice: 10, analysis_upload: 10,
-    mock: 1,
+    speed: 2,               // 0.1分/题 × 20题
+    idiom: 10,              // 0.5分/题 × 20题
+    changshi: 10,           // 0.5分/题 × 20题
+    shenlun: 3,             // 单篇最高5分，累计满3分即可
+    math_practice: 10,      // 1分/题 × 10题
+    math_upload: 10,        // 1分/题 × 10题
+    analysis_practice: 10,  // 1分/题 × 10题
+    analysis_upload: 10,    // 1分/题 × 10题
+    mock: 1,                // 手动，1套
   },
 }
 
@@ -1501,9 +1507,10 @@ app.get('/api/checkin/today', (req, res) => {
   })
 })
 
-// POST /api/checkin/increment  body: { task: string }
+// POST /api/checkin/increment  body: { task: string, amount?: number }
+// amount 默认 1，积分类任务传实际积分值（可为小数），mock 传 1
 app.post('/api/checkin/increment', (req, res) => {
-  const { task } = req.body
+  const { task, amount = 1 } = req.body
   if (!CHECKIN_TASK_KEYS.includes(task)) return res.status(400).json({ error: '无效任务' })
   const today = getCheckinTodayKey()
   // mock 只允许在周六打卡
@@ -1513,7 +1520,8 @@ app.post('/api/checkin/increment', (req, res) => {
   const data = readCheckinData()
   const cfg  = readCheckinConfig()
   if (!data[today]) data[today] = emptyCheckinDay()
-  data[today][task] = (data[today][task] || 0) + 1
+  const amt = parseFloat(amount) || 1
+  data[today][task] = Math.round(((data[today][task] || 0) + amt) * 1000) / 1000
   data[today] = maybeMarkComplete(data[today], cfg.targets, today)
   writeCheckinData(data)
   res.json({

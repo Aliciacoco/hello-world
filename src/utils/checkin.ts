@@ -100,11 +100,11 @@ export async function fetchTodayCheckin(): Promise<TodayResponse> {
   return res.json()
 }
 
-export async function incrementTask(task: TaskKey): Promise<TodayResponse> {
+export async function incrementTask(task: TaskKey, amount = 1): Promise<TodayResponse> {
   const res = await fetch('/api/checkin/increment', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ task }),
+    body: JSON.stringify({ task, amount }),
   })
   if (!res.ok) throw new Error('打卡失败')
   return res.json()

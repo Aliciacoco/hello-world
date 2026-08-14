@@ -168,7 +168,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     setCardAnim(correct ? 'correct' : 'wrong')
     setTimeout(() => setCardAnim(''), 400)
     if (correct) {
-      earnPoints(pointsPerCorrect, `${subject}答对`)
+      earnPoints(pointsPerCorrect, `${subject}答对`, 'practice', bankType)
     }
     // 答完后清掉缓存，避免切换页面再回来时仍显示这道已答题目
     sessionStorage.removeItem(`exam_q_${bankType}`)

@@ -1,4 +1,9 @@
-export function earnPoints(amount: number, reason: string, activity: 'practice' | 'upload' | 'theme-bonus' = 'practice') {
+export function earnPoints(
+  amount: number,
+  reason: string,
+  activity: 'practice' | 'upload' | 'theme-bonus' = 'practice',
+  bankType?: string,
+) {
   fetch('/api/points/earn', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -7,7 +12,7 @@ export function earnPoints(amount: number, reason: string, activity: 'practice' 
     .then(r => r.json())
     .then((data: { balance: number }) => {
       window.dispatchEvent(
-        new CustomEvent('points-earned', { detail: { amount, balance: data.balance, activity } })
+        new CustomEvent('points-earned', { detail: { amount, balance: data.balance, activity, bankType } })
       )
     })
     .catch(() => {})

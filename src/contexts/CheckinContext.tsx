@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { fetchTodayCheckin, incrementTask, TodayResponse, TaskKey } from '../utils/checkin'
 
-// ── bankType 事件值 → 打卡任务 key ──────────────────────────────────
+// ── bankType → 打卡任务 key ──────────────────────────────────────
 const PRACTICE_TASK_MAP: Record<string, TaskKey> = {
   speed:    'speed',
   idiom:    'idiom',
@@ -20,8 +20,8 @@ const UPLOAD_TASK_MAP: Record<string, TaskKey> = {
 interface CheckinCtx {
   today: TodayResponse | null
   refresh: () => void
-  /** 手动增加某任务进度（供套题等手动打卡按钮调用） */
-  increment: (task: TaskKey) => Promise<void>
+  /** 手动增加某任务积分（供套题等手动打卡按钮调用） */
+  increment: (task: TaskKey, amount?: number) => Promise<void>
 }
 
 const CheckinContext = createContext<CheckinCtx>({
@@ -37,36 +37,31 @@ export function CheckinProvider({ children }: { children: ReactNode }) {
     fetchTodayCheckin().then(setToday).catch(() => {})
   }, [])
 
-  const increment = useCallback(async (task: TaskKey) => {
-    const res = await incrementTask(task)
+  const increment = useCallback(async (task: TaskKey, amount = 1) => {
+    const res = await incrementTask(task, amount)
     setToday(res)
   }, [])
 
-  // 首次加载
   useEffect(() => { refresh() }, [refresh])
 
-  // 全局监听 answer-result 和 points-earned 事件
+  // 统一监听 points-earned，按 activity + bankType 路由到对应打卡任务
+  // 同时处理 practice（答题得分）和 upload（录题得分）
   useEffect(() => {
-    const handleAnswer = (e: Event) => {
-      const { correct, bankType } = (e as CustomEvent).detail ?? {}
-      if (!correct || !bankType) return
-      const task = PRACTICE_TASK_MAP[bankType as string]
-      if (task) incrementTask(task).then(setToday).catch(() => {})
+    const handlePointsEarned = (e: Event) => {
+      const { activity, bankType, amount } = (e as CustomEvent).detail ?? {}
+      if (!bankType || !amount) return
+
+      if (activity === 'practice') {
+        const task = PRACTICE_TASK_MAP[bankType as string]
+        if (task) incrementTask(task, amount).then(setToday).catch(() => {})
+      } else if (activity === 'upload') {
+        const task = UPLOAD_TASK_MAP[bankType as string]
+        if (task) incrementTask(task, amount).then(setToday).catch(() => {})
+      }
     }
 
-    const handleUpload = (e: Event) => {
-      const { activity, bankType } = (e as CustomEvent).detail ?? {}
-      if (activity !== 'upload' || !bankType) return
-      const task = UPLOAD_TASK_MAP[bankType as string]
-      if (task) incrementTask(task).then(setToday).catch(() => {})
-    }
-
-    window.addEventListener('answer-result', handleAnswer)
-    window.addEventListener('points-earned', handleUpload)
-    return () => {
-      window.removeEventListener('answer-result', handleAnswer)
-      window.removeEventListener('points-earned', handleUpload)
-    }
+    window.addEventListener('points-earned', handlePointsEarned)
+    return () => window.removeEventListener('points-earned', handlePointsEarned)
   }, [])
 
   return (

@@ -4,6 +4,10 @@ import {
   TASK_LABELS, getActiveTasks,
   CalendarDay, CheckinConfig, calcExamCountdown,
 } from '../utils/checkin'
+
+function fmt(n: number) {
+  return n % 1 === 0 ? String(n) : n.toFixed(1)
+}
 import { useCheckin } from '../contexts/CheckinContext'
 import styles from './CheckinPage.module.css'
 
@@ -46,7 +50,7 @@ function TodayCard() {
             <div className={styles.todayItemHeader}>
               <span className={styles.todayItemLabel}>{TASK_LABELS[key]}</span>
               <span className={styles.todayItemCount}>
-                {done ? '✅' : `${cur} / ${max}`}
+                {done ? '✅' : (key === 'mock' ? `${fmt(cur)}/${fmt(max)}` : `${fmt(cur)}/${fmt(max)}分`)}
               </span>
             </div>
             <div className={styles.barTrack}>
@@ -120,15 +124,15 @@ function CalendarGrid({ calendar, examDates }: { calendar: CalendarDay[]; examDa
 
 // ── 配置面板 ──────────────────────────────────────────────────────
 const TARGET_LABELS: Record<string, string> = {
-  speed:             '⚡ 速算（答对题数）',
-  idiom:             '📖 成语辨析（答对题数）',
-  changshi:          '🧠 常识（答对题数）',
-  shenlun:           '✍️ 申论（完成篇数）',
-  math_practice:     '📊 数量关系·练题（答对题数）',
-  math_upload:       '📊 数量关系·录题（录入题数）',
-  analysis_practice: '📈 资料分析·练题（答对题数）',
-  analysis_upload:   '📈 资料分析·录题（录入题数）',
-  mock:              '📝 套题（套数，仅周六）',
+  speed:             '⚡ 速算（积分，排列组合+分数速算合计，每题0.1分）',
+  idiom:             '📖 成语辨析（积分，每题0.5分）',
+  changshi:          '🧠 常识（积分，每题0.5分）',
+  shenlun:           '✍️ 申论（积分，单篇最高5分，累计满即可）',
+  math_practice:     '📊 数量关系·练题（积分，每题1分）',
+  math_upload:       '📊 数量关系·录题（积分，每题1分）',
+  analysis_practice: '📈 资料分析·练题（积分，每题1分）',
+  analysis_upload:   '📈 资料分析·录题（积分，每题1分）',
+  mock:              '📝 套题（套数，仅周六，手动打卡）',
 }
 
 const ALL_TARGET_KEYS = [
@@ -214,9 +218,12 @@ function ConfigPanel({ config, onSaved }: { config: CheckinConfig; onSaved: (c: 
                 value={(targets as Record<string, number>)[key] ?? 0}
                 min={0}
                 max={200}
+                step={key === 'mock' ? 1 : 0.5}
                 onChange={e => setTargets(prev => ({
                   ...prev,
-                  [key]: parseInt(e.target.value, 10) || 0,
+                  [key]: key === 'mock'
+                    ? (parseInt(e.target.value, 10) || 0)
+                    : (parseFloat(e.target.value) || 0),
                 }))}
               />
             </div>

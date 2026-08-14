@@ -4,6 +4,10 @@ import { useCheckin } from '../contexts/CheckinContext'
 import { getActiveTasks, TASK_LABELS, calcExamCountdown } from '../utils/checkin'
 import styles from './DailyCheckin.module.css'
 
+function fmt(n: number) {
+  return n % 1 === 0 ? String(n) : n.toFixed(1)
+}
+
 export default function DailyCheckin() {
   const { today, increment } = useCheckin()
   const navigate = useNavigate()
@@ -73,7 +77,7 @@ export default function DailyCheckin() {
                 </button>
               ) : (
                 <span className={styles.taskCount}>
-                  {done ? '✅' : `${cur}/${max}`}
+                  {done ? '✅' : (isMock ? `${fmt(cur)}/${fmt(max)}` : `${fmt(cur)}/${fmt(max)}分`)}
                 </span>
               )}
             </div>

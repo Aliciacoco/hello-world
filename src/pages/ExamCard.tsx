@@ -77,13 +77,19 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     setAiFeedback('')
     setPhase('question')
     try {
-      const url = excludeId
-        ? `/api/bank/${bankType}/random?exclude=${encodeURIComponent(excludeId)}`
+      // 优先使用传入的 excludeId，否则从 localStorage 读取上次的进度
+      const lastId = excludeId || localStorage.getItem(`exam_last_id_${bankType}`) || ''
+      const url = lastId
+        ? `/api/bank/${bankType}/random?exclude=${encodeURIComponent(lastId)}`
         : `/api/bank/${bankType}/random`
       const res = await fetch(url)
       if (!res.ok) throw new Error()
       const q = await res.json()
       sessionStorage.setItem(`exam_q_${bankType}`, JSON.stringify(q))
+      // 只在点"下一题"时才更新 localStorage（即 excludeId 有值时）
+      if (excludeId) {
+        localStorage.setItem(`exam_last_id_${bankType}`, excludeId)
+      }
       setQuestion(q)
     } catch {
       setError('题库暂无题目，请先上传')

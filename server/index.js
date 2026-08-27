@@ -1231,6 +1231,12 @@ app.delete('/api/points/history/:id', (req, res) => {
   res.json(data)
 })
 
+app.post('/api/points/clear', (req, res) => {
+  const data = { balance: 0, history: [] }
+  writePoints(data)
+  res.json(data)
+})
+
 app.delete('/api/wrong-answers/:id', (req, res) => {
   const list = readData()
   const filtered = list.filter(r => r.id !== req.params.id)

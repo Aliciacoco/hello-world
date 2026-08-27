@@ -181,14 +181,40 @@
 /* 历史记录 */
 .historySection { margin-top: 8px; }
 
+.historyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+
 .historyTitle {
   font-size: 0.68rem;
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin: 0 0 10px;
-  padding: 0 4px;
+  margin: 0;
+}
+
+.clearAllBtn {
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  background: none;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clearAllBtn:hover {
+  color: var(--red);
+  border-color: rgba(192, 57, 43, 0.3);
+  background: rgba(192, 57, 43, 0.05);
 }
 
 .empty {

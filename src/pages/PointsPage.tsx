@@ -85,6 +85,20 @@ export default function PointsPage() {
     }
   }
 
+  const handleClearAll = async () => {
+    if (!confirm('确定清空所有积分记录吗？此操作不可恢复！')) return
+    if (!confirm('再次确认：这将删除所有积分历史记录并重置余额为0')) return
+    try {
+      const res = await fetch('/api/points/clear', { method: 'POST' })
+      if (res.ok) {
+        const updated = await res.json()
+        setData(updated)
+      }
+    } catch {
+      alert('清空失败，请重试')
+    }
+  }
+
   if (loading) return <div className={styles.page}><p className={styles.empty}>加载中...</p></div>
   if (!data) return <div className={styles.page}><p className={styles.empty}>加载失败</p></div>
 
@@ -128,7 +142,12 @@ export default function PointsPage() {
 
       {/* 历史记录 */}
       <div className={styles.historySection}>
-        <h2 className={styles.historyTitle}>积分记录</h2>
+        <div className={styles.historyHeader}>
+          <h2 className={styles.historyTitle}>积分记录</h2>
+          {data.history.length > 0 && (
+            <button className={styles.clearAllBtn} onClick={handleClearAll}>清空所有记录</button>
+          )}
+        </div>
         {data.history.length === 0
           ? <p className={styles.empty}>还没有记录，快去练题吧！</p>
           : (

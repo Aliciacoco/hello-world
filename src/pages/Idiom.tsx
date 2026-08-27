@@ -75,10 +75,8 @@ export default function Idiom() {
       if (!res.ok) throw new Error()
       const q = await res.json()
       sessionStorage.setItem(IDIOM_CURRENT_KEY, JSON.stringify(q))
-      // 只在点"下一题"时才更新 localStorage（即 excludeId 有值时）
-      if (excludeId) {
-        localStorage.setItem(IDIOM_LAST_ID_KEY, excludeId)
-      }
+      // 保存新题的ID作为进度，这样下次刷新时能从这道题之后继续
+      localStorage.setItem(IDIOM_LAST_ID_KEY, q.id)
       setQuestion(q)
     } catch {
       setError('获取题目失败，请重试')

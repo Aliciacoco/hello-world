@@ -165,7 +165,8 @@ app.post('/api/idiom/judge', async (req, res) => {
     }])
     const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
     let newBalance = null
-    if (json.correct) newBalance = earnPoints(0.5, '成语答对')
+    const pointsConfig = readPointsConfig()
+    if (json.correct) newBalance = earnPoints(pointsConfig.idiom, '成语答对')
     res.json({
       ...json,
       feedback: json.feedback || '',
@@ -787,6 +788,32 @@ const JUDGEMENT_BANK_FILE = path.join(DATA_DIR, 'judgement_bank.json')
 const ANALYSIS_BANK_FILE = path.join(DATA_DIR, 'analysis_bank.json')
 const CHANGSHI_BANK_FILE = path.join(DATA_DIR, 'changshi_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
+const POINTS_CONFIG_FILE = path.join(DATA_DIR, 'points_config.json')
+
+const DEFAULT_POINTS_CONFIG = {
+  speed: 0.1,
+  idiom: 0.5,
+  changshi: 0.5,
+  shenlun: 5,
+  math_practice: 1,
+  math_upload: 1,
+  judgement_practice: 1,
+  judgement_upload: 1,
+  analysis_practice: 1,
+  analysis_upload: 1,
+}
+
+function readPointsConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(POINTS_CONFIG_FILE, 'utf8'))
+  } catch {
+    return { ...DEFAULT_POINTS_CONFIG }
+  }
+}
+
+function writePointsConfig(config) {
+  fs.writeFileSync(POINTS_CONFIG_FILE, JSON.stringify(config, null, 2))
+}
 
 function readPoints() {
   try { return JSON.parse(fs.readFileSync(POINTS_FILE, 'utf8')) } catch { return { balance: 0, history: [] } }
@@ -953,8 +980,9 @@ app.post('/api/bank/math', async (req, res) => {
     const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
     bank.push(newItem)
     writeBank(MATH_BANK_FILE, bank)
-    const mathBalance = earnPoints(1, '录入数量关系题')
-    res.json({ ...newItem, _pts: 1, _balance: mathBalance })
+    const pointsConfig = readPointsConfig()
+    const mathBalance = earnPoints(pointsConfig.math_upload, '录入数量关系题')
+    res.json({ ...newItem, _pts: pointsConfig.math_upload, _balance: mathBalance })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -996,8 +1024,9 @@ app.post('/api/bank/idiom', async (req, res) => {
     const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
     bank.push(newItem)
     writeBank(IDIOM_BANK_FILE, bank)
-    const idiomBalance = earnPoints(1, '录入成语')
-    res.json({ ...newItem, _pts: 1, _balance: idiomBalance })
+    const pointsConfig = readPointsConfig()
+    const idiomBalance = earnPoints(pointsConfig.idiom, '录入成语')
+    res.json({ ...newItem, _pts: pointsConfig.idiom, _balance: idiomBalance })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -1051,7 +1080,9 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
       bank.push(newItem)
       writeBank(file, bank)
       const subjectName = { judgement: '判断推理', analysis: '资料分析', changshi: '常识' }[prefix] || prefix
-      const uploadPoints = prefix === 'changshi' ? 0.5 : 1
+      const pointsConfig = readPointsConfig()
+      const uploadKey = `${prefix}_upload`
+      const uploadPoints = pointsConfig[uploadKey] || 1
       let newBalance = null
       if (!req.body.silent) newBalance = earnPoints(uploadPoints, `录入${subjectName}题`)
       res.json({ ...newItem, _pts: newBalance !== null ? uploadPoints : undefined, _balance: newBalance })
@@ -1121,8 +1152,11 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
         }])
         const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
         let newBalance = null
-        if (json.correct) newBalance = earnPoints(judgeConfig.answerPoints, `${judgeConfig.subjectName}答对`)
-        res.json({ ...json, _pts: json.correct ? judgeConfig.answerPoints : undefined, _balance: newBalance })
+        const pointsConfig = readPointsConfig()
+        const practiceKey = `${prefix}_practice`
+        const answerPoints = pointsConfig[practiceKey] || judgeConfig.answerPoints
+        if (json.correct) newBalance = earnPoints(answerPoints, `${judgeConfig.subjectName}答对`)
+        res.json({ ...json, _pts: json.correct ? answerPoints : undefined, _balance: newBalance })
       } catch (e) {
         res.status(500).json({ error: e.message })
       }
@@ -1195,9 +1229,19 @@ app.get('/api/points', (req, res) => {
 })
 
 app.post('/api/points/earn', (req, res) => {
-  const { amount, reason } = req.body
-  if (!amount || !reason) return res.status(400).json({ error: '缺少参数' })
-  earnPoints(amount, reason)
+  const { amount, reason, bankType } = req.body
+  if (!reason) return res.status(400).json({ error: '缺少参数' })
+
+  // 如果提供了 bankType，从配置中读取积分；否则使用传入的 amount（向后兼容）
+  let finalAmount = amount
+  if (bankType) {
+    const pointsConfig = readPointsConfig()
+    // bankType 可能是 'speed'（排列组合+分数）或其他配置键
+    finalAmount = pointsConfig[bankType] || amount || 0
+  }
+
+  if (!finalAmount) return res.status(400).json({ error: '缺少参数' })
+  earnPoints(finalAmount, reason)
   res.json(readPoints())
 })
 
@@ -1235,6 +1279,17 @@ app.post('/api/points/clear', (req, res) => {
   const data = { balance: 0, history: [] }
   writePoints(data)
   res.json(data)
+})
+
+app.get('/api/config/points', (req, res) => {
+  const config = readPointsConfig()
+  res.json(config)
+})
+
+app.post('/api/config/points', (req, res) => {
+  const config = req.body
+  writePointsConfig(config)
+  res.json(config)
 })
 
 app.delete('/api/wrong-answers/:id', (req, res) => {
@@ -1329,7 +1384,10 @@ ${essay}
       feedback = json.feedback
       exemplar = json.exemplar || ''
     }
-    const pts = Math.round(score * 0.5 * 10) / 10
+    const pointsConfig = readPointsConfig()
+    const maxPoints = pointsConfig.shenlun || 5
+    // 按比例计算：如果满分10分，得分8分，最高积分5分，则得 5 * (8/10) = 4分
+    const pts = Math.round((maxPoints * score / 10) * 10) / 10
     earnPoints(pts, `申论练习得${score}分`)
     res.json({ score, feedback, exemplar })
   } catch (e) {

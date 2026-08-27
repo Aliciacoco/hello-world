@@ -4,6 +4,7 @@ import PointToast from './components/PointToast'
 import Home from './pages/Home'
 import BankPage from './pages/BankPage'
 import PointsPage from './pages/PointsPage'
+import ConfigPage from './pages/ConfigPage'
 import DailyExplore from './components/DailyExplore'
 import CheckinPage from './pages/CheckinPage'
 import { CheckinProvider } from './contexts/CheckinContext'
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/bank" element={<BankPage />} />
             <Route path="/points" element={<PointsPage />} />
+            <Route path="/config" element={<ConfigPage />} />
             <Route path="/explore" element={<DailyExplore />} />
             <Route path="/checkin" element={<CheckinPage />} />
           </Routes>

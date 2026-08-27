@@ -1,0 +1,129 @@
+.page {
+  min-height: 100vh;
+  padding: 72px 20px 60px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.hint {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0 0 24px;
+}
+
+.loading {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 48px;
+}
+
+.configGrid {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.configRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--separator);
+}
+
+.configRow:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.inputWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input {
+  width: 80px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-inset);
+  border-radius: var(--radius-input);
+  font-size: 0.9rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  color: var(--text);
+  outline: none;
+  text-align: right;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  background: var(--bg-card);
+}
+
+.unit {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  min-width: 20px;
+}
+
+.note {
+  background: rgba(200, 133, 63, 0.08);
+  border: 1px solid rgba(200, 133, 63, 0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.saveRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.saveMsg {
+  font-size: 0.88rem;
+  color: var(--green);
+  font-weight: 500;
+}
+
+.saveBtn {
+  padding: 10px 32px;
+  background: var(--accent);
+  color: #f7f4ef;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 0.93rem;
+  font-weight: 600;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.saveBtn:hover { opacity: 0.85; }
+.saveBtn:active { transform: scale(0.97); }
+.saveBtn:disabled { opacity: 0.4; cursor: not-allowed; }

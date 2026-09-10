@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef } from 'react'
+import { useRoundPractice } from '../hooks/useRoundPractice'
 import { earnPoints } from '../utils/points'
 import styles from './ExamCard.module.css'
 
@@ -51,13 +52,17 @@ function parseOptions(raw: string): { letter: string; text: string }[] {
 export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnded = false }: Props) {
   const [mode, setMode] = useState<Mode>('practice')
 
-  const [question, setQuestion] = useState<BankQuestion | null>(null)
-  const [loadingQ, setLoadingQ] = useState(true)
+  const {
+    question, loading: loadingQ, empty, error, completed,
+    round, remaining, roundTotal, notice,
+    recordResult, next, restart, reload,
+  } = useRoundPractice<BankQuestion>(bankType)
+
   const [userAnswer, setUserAnswer] = useState('')
   const [phase, setPhase] = useState<Phase>('question')
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [aiFeedback, setAiFeedback] = useState('')
-  const [error, setError] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const [cardAnim, setCardAnim] = useState<'correct' | 'wrong' | ''>('')
 
   const [uploadText, setUploadText] = useState('')
@@ -69,66 +74,18 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchQuestion = useCallback(async (excludeId?: string) => {
-    setLoadingQ(true)
-    setError('')
-    setUserAnswer('')
-    setIsCorrect(null)
-    setAiFeedback('')
-    setPhase('question')
-    try {
-      // 优先使用传入的 excludeId，否则从 localStorage 读取上次的进度
-      const lastId = excludeId || localStorage.getItem(`exam_last_id_${bankType}`) || ''
-      const url = lastId
-        ? `/api/bank/${bankType}/random?exclude=${encodeURIComponent(lastId)}`
-        : `/api/bank/${bankType}/random`
-      const res = await fetch(url)
-      if (!res.ok) throw new Error()
-      const q = await res.json()
-      sessionStorage.setItem(`exam_q_${bankType}`, JSON.stringify(q))
-      // 只在点"下一题"时才更新 localStorage（即 excludeId 有值时）
-      if (excludeId) {
-        localStorage.setItem(`exam_last_id_${bankType}`, excludeId)
-      }
-      setQuestion(q)
-    } catch {
-      setError('题库暂无题目，请先上传')
-    } finally {
-      setLoadingQ(false)
-    }
-  }, [bankType])
-
-  const recordPractice = useCallback((item: BankQuestion, answer: string, correct: boolean) => {
+  const recordPractice = (item: BankQuestion, answer: string, correct: boolean) => {
     fetch(`/api/bank/${bankType}/${item.id}/review`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userAnswer: answer, correct, date: Date.now() }),
     }).catch(() => {})
-  }, [bankType])
-  useEffect(() => {
-    // 优先从 sessionStorage 恢复，避免切换页面时换题
-    const saved = sessionStorage.getItem(`exam_q_${bankType}`)
-    if (saved) {
-      try {
-        setQuestion(JSON.parse(saved))
-        setLoadingQ(false)
-        setUserAnswer('')
-        setPhase('question')
-        setError('')
-        setIsCorrect(null)
-        setAiFeedback('')
-        return
-      } catch {
-        sessionStorage.removeItem(`exam_q_${bankType}`)
-      }
-    }
-    fetchQuestion()
-  }, [bankType, fetchQuestion])
+  }
 
   const handleSubmitAnswer = async () => {
-    if (!userAnswer.trim()) { setError('请选择答案'); return }
+    if (!userAnswer.trim()) { setSubmitError('请选择答案'); return }
     if (!question) return
-    setError('')
+    setSubmitError('')
 
     if (openEnded) {
       setPhase('judging')
@@ -147,6 +104,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         const data = await res.json()
         setIsCorrect(data.correct)
         setAiFeedback(data.feedback)
+        recordResult(question.id, data.correct)
         recordPractice(question, userAnswer.trim(), data.correct)
         window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: data.correct, activity: 'practice', bankType } }))
         if (data.correct && data._pts != null && data._balance != null) {
@@ -156,11 +114,9 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         }
         setCardAnim(data.correct ? 'correct' : 'wrong')
         setTimeout(() => setCardAnim(''), 400)
-        // 答完后清掉缓存，避免切换页面再回来时仍显示这道已答题目
-        sessionStorage.removeItem(`exam_q_${bankType}`)
         setPhase('result')
       } catch {
-        setError('判断失败，请重试')
+        setSubmitError('判断失败，请重试')
         setPhase('question')
       }
       return
@@ -169,6 +125,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     // 选择题：本地字符串对比
     const correct = userAnswer.trim().toUpperCase() === question.answer.trim().toUpperCase()
     setIsCorrect(correct)
+    recordResult(question.id, correct)
     recordPractice(question, userAnswer.trim(), correct)
     window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct, activity: 'practice', bankType } }))
     setCardAnim(correct ? 'correct' : 'wrong')
@@ -176,9 +133,15 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     if (correct) {
       earnPoints(pointsPerCorrect, `${subject}答对`, 'practice', bankType)
     }
-    // 答完后清掉缓存，避免切换页面再回来时仍显示这道已答题目
-    sessionStorage.removeItem(`exam_q_${bankType}`)
     setPhase('result')
+  }
+
+  const handleNext = () => {
+    setUserAnswer('')
+    setIsCorrect(null)
+    setAiFeedback('')
+    setPhase('question')
+    next()
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,6 +180,8 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
       setImageBase64('')
       setImagePreview('')
       if (fileInputRef.current) fileInputRef.current.value = ''
+      // 新题并入当前轮队列
+      reload()
     } catch {
       setUploadError('上传失败，请重试')
     } finally {
@@ -226,6 +191,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
 
   // 当前题目的解析选项（每次渲染时计算，开销极小）
   const parsedOpts = question?.options ? parseOptions(question.options) : []
+  const showProgress = mode === 'practice' && !completed && !!question && roundTotal > 0
 
   return (
     <div className={styles.container}>
@@ -233,6 +199,9 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         <div className={styles.header}>
           <span className={styles.label}>{subject}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {showProgress && (
+              <span className={styles.roundBadge}>第{round}轮 {remaining}/{roundTotal}</span>
+            )}
             {mode === 'practice' && phase === 'question' && !!question && !loadingQ && (
               <button
                 className={styles.confirmBtn}
@@ -252,9 +221,26 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
         {mode === 'practice' && (
           <>
             {loadingQ && <p className={styles.loading}>加载题目...</p>}
-            {!loadingQ && !question && (
+            {!loadingQ && !question && !completed && empty && (
+              <><p className={styles.hint}>题库为空，先上传几道题吧</p>
+                <button className={styles.btn} onClick={() => setMode('upload')}>去上传</button></>
+            )}
+            {!loadingQ && !question && !completed && !empty && (
               <>{error && <p className={styles.error}>{error}</p>}
-                <button className={styles.btn} onClick={() => fetchQuestion()}>重试</button></>
+                <button className={styles.btn} onClick={reload}>重试</button></>
+            )}
+
+            {/* ── 全部做对 ── */}
+            {!loadingQ && completed && (
+              <>
+                <p className={styles.hint}>🎉 全部做对！共练了 {round} 轮</p>
+                <button className={styles.btn} onClick={restart}>重新开始一轮</button>
+              </>
+            )}
+
+            {/* ── 轮次切换提示 ── */}
+            {!loadingQ && notice && phase === 'question' && question && (
+              <p className={styles.roundNotice}>{notice}</p>
             )}
 
             {/* ── 答题阶段 ── */}
@@ -266,7 +252,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                     <textarea
                       className={styles.textarea}
                       value={userAnswer}
-                      onChange={e => { setUserAnswer(e.target.value); setError('') }}
+                      onChange={e => { setUserAnswer(e.target.value); setSubmitError('') }}
                       placeholder="写下你的理解..."
                       rows={3}
                       autoFocus
@@ -278,7 +264,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                         <button
                           key={letter}
                           className={`${styles.optionBtn} ${userAnswer === letter ? styles.optionBtnSelected : ''}`}
-                          onClick={() => { setUserAnswer(letter); setError('') }}
+                          onClick={() => { setUserAnswer(letter); setSubmitError('') }}
                         >
                           <span className={styles.optionLetter}>{letter}</span>
                           <span className={styles.optionText}>{text}</span>
@@ -290,12 +276,12 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                     <>
                       {question.options && <pre className={styles.options}>{formatOptions(question.options)}</pre>}
                       <input className={styles.input} type="text" value={userAnswer}
-                        onChange={e => { setUserAnswer(e.target.value); setError('') }}
+                        onChange={e => { setUserAnswer(e.target.value); setSubmitError('') }}
                         onKeyDown={e => e.key === 'Enter' && handleSubmitAnswer()}
                         placeholder="输入答案（如 A）" autoFocus />
                     </>
                   )}
-                  {error && <p className={styles.error}>{error}</p>}
+                  {submitError && <p className={styles.error}>{submitError}</p>}
                 </div>
               </>
             )}
@@ -348,7 +334,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                   </div>
                 )}
                 <p className={styles.explanation}>{question.explanation}</p>
-                <button className={styles.btn} onClick={() => fetchQuestion(question.id)}>下一题</button>
+                <button className={styles.btn} onClick={handleNext}>下一题</button>
               </>
             )}
           </>

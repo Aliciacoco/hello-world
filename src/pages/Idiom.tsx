@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
+import { useRoundPractice } from '../hooks/useRoundPractice'
 import styles from './Practice.module.css'
 import idiomStyles from './Idiom.module.css'
 
@@ -22,18 +23,18 @@ interface JudgeResult {
   _balance?: number
 }
 
-const IDIOM_CURRENT_KEY = 'idiom_current'
-const IDIOM_LAST_ID_KEY = 'idiom_last_id' // 持久化记录上次做到的题目ID
-
 export default function Idiom() {
   const [mode, setMode] = useState<Mode>('practice')
 
-  const [question, setQuestion] = useState<IdiomQuestion | null>(null)
-  const [loadingQuestion, setLoadingQuestion] = useState(true)
-  const [emptyBank, setEmptyBank] = useState(false)
+  const {
+    question, loading: loadingQuestion, empty, error, completed,
+    round, remaining, roundTotal, notice,
+    recordResult, next, restart, reload,
+  } = useRoundPractice<IdiomQuestion>('idiom')
+
   const [input, setInput] = useState('')
   const [phase, setPhase] = useState<Phase>('question')
-  const [error, setError] = useState('')
+  const [judgeError, setJudgeError] = useState('')
   const [judgeResult, setJudgeResult] = useState<JudgeResult | null>(null)
 
   const [uploadText, setUploadText] = useState('')
@@ -43,55 +44,11 @@ export default function Idiom() {
   const [uploadError, setUploadError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const fetchQuestion = useCallback(async (force = false, excludeId?: string) => {
-    setLoadingQuestion(true)
-    setError('')
-    setInput('')
-    setJudgeResult(null)
-    setPhase('question')
-    setEmptyBank(false)
-    if (force) {
-      sessionStorage.removeItem(IDIOM_CURRENT_KEY)
-    }
-    // 刷新页面时保持同一道题，除非主动点"下一题"
-    if (!force) {
-      const cached = sessionStorage.getItem(IDIOM_CURRENT_KEY)
-      if (cached) {
-        try {
-          setQuestion(JSON.parse(cached))
-          setLoadingQuestion(false)
-          return
-        } catch { /* 缓存损坏则继续请求 */ }
-      }
-    }
-    try {
-      // 优先使用传入的 excludeId，否则从 localStorage 读取上次的进度
-      const lastId = excludeId || localStorage.getItem(IDIOM_LAST_ID_KEY) || ''
-      const url = lastId
-        ? `/api/bank/idiom/random?exclude=${encodeURIComponent(lastId)}`
-        : '/api/bank/idiom/random'
-      const res = await fetch(url)
-      if (res.status === 404) { setEmptyBank(true); return }
-      if (!res.ok) throw new Error()
-      const q = await res.json()
-      sessionStorage.setItem(IDIOM_CURRENT_KEY, JSON.stringify(q))
-      // 保存新题的ID作为进度，这样下次刷新时能从这道题之后继续
-      localStorage.setItem(IDIOM_LAST_ID_KEY, q.id)
-      setQuestion(q)
-    } catch {
-      setError('获取题目失败，请重试')
-    } finally {
-      setLoadingQuestion(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchQuestion() }, [fetchQuestion])
-
   const handleSubmitAnswer = async () => {
-    if (!input.trim()) { setError('请输入你的理解'); return }
+    if (!input.trim()) { setJudgeError('请输入你的理解'); return }
     if (!question) return
     setPhase('loading')
-    setError('')
+    setJudgeError('')
     try {
       const res = await fetch('/api/idiom/judge', {
         method: 'POST',
@@ -101,6 +58,8 @@ export default function Idiom() {
       if (!res.ok) throw new Error()
       const result: JudgeResult = await res.json()
       setJudgeResult(result)
+      // 记录对错到轮次引擎（持久化，刷新不丢）
+      recordResult(question.id, result.correct)
       window.dispatchEvent(new CustomEvent('answer-result', { detail: { correct: result.correct, activity: 'practice', bankType: 'idiom' } }))
       if (result.correct && result._pts != null && result._balance != null) {
         window.dispatchEvent(new CustomEvent('points-earned', {
@@ -116,7 +75,7 @@ export default function Idiom() {
       }
       setPhase('explanation')
     } catch {
-      setError('判断失败，请重试')
+      setJudgeError('判断失败，请重试')
       setPhase('question')
     }
   }
@@ -165,9 +124,11 @@ export default function Idiom() {
     setUploadPhase('idle')
     setUploadError('')
     if (fileInputRef.current) fileInputRef.current.value = ''
-    fetchQuestion(true)
+    reload()
     setMode('practice')
   }
+
+  const showProgress = mode === 'practice' && !completed && !!question && roundTotal > 0
 
   return (
     <div className={styles.container}>
@@ -175,6 +136,9 @@ export default function Idiom() {
         <div className={idiomStyles.header}>
           <span className={idiomStyles.cardLabel}>成语辨析</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {showProgress && (
+              <span className={idiomStyles.roundBadge}>第{round}轮 {remaining}/{roundTotal}</span>
+            )}
             {mode === 'practice' && phase === 'question' && !!question && !loadingQuestion && (
               <button className={styles.confirmBtn} onClick={handleSubmitAnswer}>✓</button>
             )}
@@ -191,13 +155,25 @@ export default function Idiom() {
           <>
             {loadingQuestion ? (
               <p className={idiomStyles.loading}>加载题目中...</p>
-            ) : emptyBank ? (
+            ) : empty ? (
               <>
                 <p className={idiomStyles.hint}>题库为空，先上传几道成语题吧</p>
                 <button className={styles.btn} onClick={() => setMode('upload')}>去上传</button>
               </>
+            ) : completed ? (
+              <>
+                <p className={idiomStyles.word}>🎉</p>
+                <p className={idiomStyles.hint}>全部做对！共练了 {round} 轮</p>
+                <button className={styles.btn} onClick={restart}>重新开始一轮</button>
+              </>
+            ) : error && !question ? (
+              <>
+                <p className={styles.error}>{error}</p>
+                <button className={styles.btn} onClick={reload}>重新获取</button>
+              </>
             ) : question ? (
               <>
+                {notice && <p className={idiomStyles.roundNotice}>{notice}</p>}
                 <div className={idiomStyles.word}>{question.word}</div>
                 <p className={idiomStyles.hint}>写出这个成语的含义和用法</p>
                 {phase === 'question' && (
@@ -205,11 +181,11 @@ export default function Idiom() {
                     <textarea
                       className={styles.textarea}
                       value={input}
-                      onChange={e => { setInput(e.target.value); setError('') }}
+                      onChange={e => { setInput(e.target.value); setJudgeError('') }}
                       placeholder="写下你的理解..."
                       rows={3}
                     />
-                    {error && <p className={styles.error}>{error}</p>}
+                    {judgeError && <p className={styles.error}>{judgeError}</p>}
                   </div>
                 )}
                 {phase === 'loading' && <p className={idiomStyles.loading}>AI 判断中...</p>}
@@ -227,16 +203,11 @@ export default function Idiom() {
                       )}
                     </div>
                     <p className={styles.explanation}>{judgeResult.feedback}</p>
-                    <button className={styles.btn} onClick={() => fetchQuestion(true, question.id)}>{'\u4e0b\u4e00\u9898'}</button>
+                    <button className={styles.btn} onClick={() => { setInput(''); setJudgeResult(null); setPhase('question'); next() }}>{'\u4e0b\u4e00\u9898'}</button>
                   </div>
                 )}
               </>
-            ) : (
-              <>
-                {error && <p className={styles.error}>{error}</p>}
-                <button className={styles.btn} onClick={() => fetchQuestion()}>重新获取</button>
-              </>
-            )}
+            ) : null}
           </>
         )}
 

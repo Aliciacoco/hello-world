@@ -763,7 +763,12 @@ const EXAM_EXTRACT_PROMPT = `请从这道行测题中提取以下信息，严格
 所有分数一律写成"a/b"这种斜杠形式（如 1/2、3/4），禁止使用 \\frac{}{} 等LaTeX或公式写法。`
 
 const CHANGSHI_EXTRACT_PROMPT = `请从这道常识题中提取信息，并丰富解析内容，严格按JSON格式输出，不要有多余文字：
-{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（若有选项则填，每个选项用\\n分隔；没有选项则填空字符串）","answer":"正确答案——若是选择题填对应字母（A/B/C/D，甲乙丙丁等符号需转换），若是问答题直接填答案文字","explanation":"解析要求：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。"}`
+{"stem":"题干","options":"","answer":"答案文字","explanation":"解析"}
+重要规则：常识题一律按问答题处理。
+① stem：如果原题是选择题（含"下列说法正确的是"等），把题干改写为不依赖选项的问答形式，如"……的原因是什么？"，不要出现"下列/以上"等指代选项的词；
+② options：固定填空字符串，不要输出任何选项；
+③ answer：填答案的文字内容——如果原题是选择题，把正确选项对应的文字内容完整写出来，禁止只填A/B/C/D字母；
+④ explanation：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。`
 
 app.post('/api/exam/extract', async (req, res) => {
   const { text, image } = req.body
@@ -1050,6 +1055,26 @@ app.get('/api/bank/math', (req, res) => {
   res.json(readBank(MATH_BANK_FILE))
 })
 
+// 常识题统一按问答题存储：丢弃选项；若 AI 仍输出了选择题（答案为字母），把正确选项的文字内容转成答案
+function normalizeChangshiToQA(item) {
+  if (!item || typeof item !== 'object') return
+  const opts = String(item.options || '')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean)
+  let ans = String(item.answer || '').trim()
+  if (opts.length > 0) {
+    const m = ans.match(/^([A-D])[.、．]?\s*(.*)$/i)
+    if (m && !m[2]) {
+      const letter = m[1].toUpperCase()
+      const hit = opts.find(o => new RegExp(`^${letter}[.、．]`).test(o))
+      if (hit) ans = hit.replace(/^[A-D][.、．]\s*/, '').trim()
+    }
+  }
+  item.options = ''
+  item.answer = ans
+}
+
 // ——— 通用题库工厂（判断推理 / 资料分析）———
 function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, judgeConfig = null) {
   app.get(`/api/bank/${prefix}/random`, (req, res) => {
@@ -1075,6 +1100,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
         content = await callQwen([{ role: 'user', content: `${extractPrompt}\n\n题目内容：\n${text}` }])
       }
       const extracted = JSON.parse(content.trim().replace(/```json|```/g, ''))
+      if (prefix === 'changshi') normalizeChangshiToQA(extracted)
       const bank = readBank(file)
       const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
       bank.push(newItem)

@@ -355,7 +355,7 @@ export default function BankPage() {
           setShenlunList(data)
           setCounts(c => ({ ...c, [tab]: data.length }))
         } else {
-          setList(data)
+          setList([...data].reverse()) // 最新导入的排在最上面
           setCounts(c => ({ ...c, [tab]: data.length }))
         }
         setLoading(false)

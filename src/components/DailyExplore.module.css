@@ -2,7 +2,7 @@
 .wrap {
   position: relative;
   max-width: 1200px;
-  margin: 0 auto 24px;
+  margin: 68px auto 24px; /* 顶部留出固定导航栏高度，避免顶部栏被遮挡 */
   padding: 24px 28px 28px;
   overflow: hidden;
   background: var(--banner-bg);

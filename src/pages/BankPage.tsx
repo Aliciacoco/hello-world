@@ -7,6 +7,19 @@ function formatOptions(options: string): string {
     .trimStart()
 }
 
+/** 取条目的录入时间：id 是毫秒时间戳时用它，否则退回 date 字段，最后退回数字 id（老数据的顺序编号） */
+function uploadTime(item: { id?: string; date?: number }): number {
+  const n = Number(item.id)
+  if (Number.isFinite(n) && n > 1e12) return n
+  if (typeof item.date === 'number') return item.date
+  return Number.isFinite(n) ? n : 0
+}
+
+/** 最新录入的排在最前面 */
+function newestFirst<T extends { id?: string; date?: number }>(list: T[]): T[] {
+  return [...list].sort((a, b) => uploadTime(b) - uploadTime(a))
+}
+
 type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'changshi' | 'calc' | 'shenlun'
 
 interface Review {
@@ -350,12 +363,12 @@ export default function BankPage() {
       .then(r => r.json())
       .then(data => {
         if (tab === 'calc') {
-          setCalcList(data)
+          setCalcList(newestFirst(data))
         } else if (tab === 'shenlun') {
-          setShenlunList(data)
+          setShenlunList(newestFirst(data))
           setCounts(c => ({ ...c, [tab]: data.length }))
         } else {
-          setList([...data].reverse()) // 最新导入的排在最上面
+          setList(newestFirst(data)) // 最新录入的排在最上面
           setCounts(c => ({ ...c, [tab]: data.length }))
         }
         setLoading(false)

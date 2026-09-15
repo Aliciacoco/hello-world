@@ -800,6 +800,65 @@ const VERBAL_BANK_FILE = path.join(DATA_DIR, 'verbal_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
 const POINTS_CONFIG_FILE = path.join(DATA_DIR, 'points_config.json')
 
+// ——— 初始题库播种 ———
+// 数据文件都不进 git（否则部署时 rsync 会覆盖线上数据），代价是新题库首次上线时线上是空的。
+// 这里在启动时检查：数据目录下缺少该题库文件，就用随代码部署的初始题库（server/seeds/）填一次。
+// 文件已存在（哪怕内容是空数组）就不会再动，用户后续增删改不受影响。
+const SEEDS_DIR = path.join(__dirname, 'seeds')
+
+function seedBankIfMissing(file, seedFileName) {
+  try {
+    if (fs.existsSync(file)) return
+    const seedPath = path.join(SEEDS_DIR, seedFileName)
+    if (!fs.existsSync(seedPath)) return
+    fs.copyFileSync(seedPath, file)
+    console.log(`[seed] 初始化题库 ${path.basename(file)} ← seeds/${seedFileName}`)
+  } catch (e) {
+    console.warn(`[seed] ${seedFileName} 初始化失败:`, e.message)
+  }
+}
+
+seedBankIfMissing(VERBAL_BANK_FILE, 'verbal_seed.json')
+
+// ——— 练习轮次进度（存服务端，刷新/换浏览器/换设备都能接着上次的轮次继续）———
+const ROUND_STATE_FILE = path.join(DATA_DIR, 'round_practice.json')
+
+function readRoundStates() {
+  try {
+    const data = JSON.parse(fs.readFileSync(ROUND_STATE_FILE, 'utf8'))
+    return data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeRoundStates(data) {
+  fs.writeFileSync(ROUND_STATE_FILE, JSON.stringify(data, null, 2))
+}
+
+app.get('/api/round/:bankType', (req, res) => {
+  res.json(readRoundStates()[req.params.bankType] || null)
+})
+
+app.put('/api/round/:bankType', (req, res) => {
+  const b = req.body || {}
+  if (!Array.isArray(b.queue) || !Array.isArray(b.wrongIds) || !Array.isArray(b.allIds)) {
+    return res.status(400).json({ error: '无效的轮次状态' })
+  }
+  const all = readRoundStates()
+  all[req.params.bankType] = {
+    round: Number(b.round) || 1,
+    queue: b.queue.map(String),
+    wrongIds: b.wrongIds.map(String),
+    allIds: b.allIds.map(String),
+    roundTotal: Number(b.roundTotal) || 0,
+    notice: typeof b.notice === 'string' ? b.notice : null,
+    updatedAt: Date.now(),
+  }
+  writeRoundStates(all)
+  res.json({ ok: true })
+})
+
 const DEFAULT_POINTS_CONFIG = {
   speed: 0.1,
   idiom: 0.5,

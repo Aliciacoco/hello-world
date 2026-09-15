@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export interface RoundBankQuestion {
   id: string
 }
 
 /**
- * 轮次出题状态（按 bankType 持久化到 localStorage，刷新/重开浏览器不丢）：
+ * 轮次出题状态：
  * - round:      当前第几轮（从 1 开始）
  * - queue:      本轮待做题 ID 队列（题库顺序），队首即当前题
  * - wrongIds:   本轮答错的题 ID（按题库顺序，去重）
  * - allIds:     本练习周期开始时的全量题库 ID 快照（用于识别新增/删除）
  * - roundTotal: 本轮总题数（轮开始时队列长度）
  * - notice:     轮次切换提示（进入新一轮时显示，答题后清除）
+ * - updatedAt:  最后修改时间，用于在本地缓存与服务端进度之间择新
  */
 interface RoundState {
   round: number
@@ -20,20 +21,43 @@ interface RoundState {
   allIds: string[]
   roundTotal: number
   notice: string | null
+  updatedAt?: number
 }
 
 const STORAGE_PREFIX = 'round_practice_'
+/** 同步服务端的防抖间隔（毫秒），避免每答一题都打一次请求 */
+const PUSH_DELAY = 400
 
-function loadState(bankType: string): RoundState | null {
+function isValidState(s: unknown): s is RoundState {
+  const o = s as RoundState | null
+  return !!o && typeof o === 'object'
+    && Array.isArray(o.queue) && Array.isArray(o.wrongIds) && Array.isArray(o.allIds)
+}
+
+function loadLocal(bankType: string): RoundState | null {
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + bankType)
     if (!raw) return null
     const s = JSON.parse(raw)
-    if (!s || !Array.isArray(s.queue) || !Array.isArray(s.wrongIds) || !Array.isArray(s.allIds)) return null
-    return s as RoundState
+    return isValidState(s) ? s : null
   } catch {
     return null
   }
+}
+
+function saveLocal(bankType: string, s: RoundState) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + bankType, JSON.stringify(s))
+  } catch {
+    /* 隐私模式/存储被禁用时写入会失败，忽略即可——服务端仍在同步 */
+  }
+}
+
+/** 取修改时间更新的一方作为恢复源（都没有则返回 null） */
+function pickNewer(a: RoundState | null, b: RoundState | null): RoundState | null {
+  if (!a) return b
+  if (!b) return a
+  return (a.updatedAt ?? 0) >= (b.updatedAt ?? 0) ? a : b
 }
 
 /**
@@ -61,6 +85,9 @@ function initFromBank<T extends RoundBankQuestion>(items: T[], prev: RoundState 
  * 轮次出题引擎：
  * 第 1 轮按题库顺序从头刷到尾 → 之后每轮只练上一轮答错的题（保持原顺序）→
  * 某轮全部做对即完成，可重新开始一轮。
+ *
+ * 进度双写：本地缓存（localStorage，即时生效、离线可用）+ 服务端（防抖同步，
+ * 刷新、换浏览器、换设备都能接着上次的轮次继续）。
  */
 export function useRoundPractice<T extends RoundBankQuestion>(bankType: string) {
   const [bank, setBank] = useState<T[]>([])
@@ -69,10 +96,37 @@ export function useRoundPractice<T extends RoundBankQuestion>(bankType: string) 
   const [empty, setEmpty] = useState(false)
   const [error, setError] = useState('')
 
-  // 状态变化即持久化（刷新可恢复）
+  // 推送服务端：防抖合并写入，失败静默（本地缓存已同步写好）
+  const timerRef = useRef<number | null>(null)
+  const pendingRef = useRef<RoundState | null>(null)
+
+  const push = useCallback((s: RoundState) => {
+    pendingRef.current = s
+    if (timerRef.current != null) return
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null
+      const payload = pendingRef.current
+      pendingRef.current = null
+      if (!payload) return
+      fetch(`/api/round/${bankType}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => {})
+    }, PUSH_DELAY)
+  }, [bankType])
+
+  useEffect(() => () => {
+    if (timerRef.current != null) window.clearTimeout(timerRef.current)
+  }, [])
+
+  // 状态变化即双写：本地缓存立即写（刷新/离线不丢），服务端防抖同步（换浏览器/设备可恢复）
   useEffect(() => {
-    if (state) localStorage.setItem(STORAGE_PREFIX + bankType, JSON.stringify(state))
-  }, [state, bankType])
+    if (!state) return
+    const stamped: RoundState = { ...state, updatedAt: Date.now() }
+    saveLocal(bankType, stamped)
+    push(stamped)
+  }, [state, bankType, push])
 
   const fetchBank = useCallback(async (mergeCurrent: boolean) => {
     setLoading(true)
@@ -81,9 +135,25 @@ export function useRoundPractice<T extends RoundBankQuestion>(bankType: string) 
       const res = await fetch(`/api/bank/${bankType}`)
       if (!res.ok) throw new Error()
       const items: T[] = await res.json()
+
+      // 远端进度：请求失败（网络异常 / 服务端是旧版本没有该接口）就退回本地缓存
+      let remote: RoundState | null = null
+      try {
+        const r = await fetch(`/api/round/${bankType}`)
+        if (r.ok) {
+          const data = await r.json()
+          if (isValidState(data)) remote = data
+        }
+      } catch {
+        /* 忽略，用本地缓存 */
+      }
+
       setBank(items)
       setEmpty(items.length === 0)
-      setState(prev => initFromBank(items, mergeCurrent && prev ? prev : loadState(bankType)))
+      setState(prev => {
+        const base = mergeCurrent && prev ? prev : pickNewer(loadLocal(bankType), remote)
+        return initFromBank(items, base)
+      })
     } catch {
       setError('获取题库失败，请重试')
     } finally {

@@ -36,11 +36,31 @@ idiom_bank.json         成语题库
 judgement_bank.json     判断推理题库
 analysis_bank.json      资料分析题库
 changshi_bank.json      常识题库
+verbal_bank.json        言语理解题库
 shenlun_bank.json       申论练习记录
 points.json             积分余额和历史
+round_practice.json     各题库的练习轮次进度（跨浏览器/设备恢复用）
 ```
 
 **这些文件已从 git 移除（.gitignore 里有），不会被 rsync 覆盖。**
+
+### 新题库的初始数据：seeds 播种
+
+数据文件不进 git 的代价是「新题库首次上线时线上是空的」。解决办法是 `server/seeds/`：
+
+- 初始题库放在 `server/seeds/<name>_seed.json`（**进 git**，随 `server/` 一起 rsync 到服务器）
+- 服务端启动时调用 `seedBankIfMissing(目标文件, seed 文件名)`：**只在目标文件不存在时**复制一份过去
+- 文件已存在（哪怕内容是空数组）就不会再动，用户后续增删改不受影响；pm2 重启同理
+
+新增题库时：把初始数据放进 `server/seeds/`，再在 `server/index.js` 的路径定义区加一行 `seedBankIfMissing(XXX_BANK_FILE, 'xxx_seed.json')`。
+
+### 练习轮次进度（round_practice.json）
+
+成语辨析 / 数量关系 / 判断推理 / 资料分析 / 常识 / 言语理解 的「第一遍顺序刷完 → 之后只练上轮错题 → 全对完成」轮次状态：
+
+- 前端 `src/hooks/useRoundPractice.ts`，**双写**：localStorage（即时、离线可用）+ 服务端 `PUT /api/round/:bankType`（防抖 400ms）
+- 进页面时 `GET /api/round/:bankType`，与本地缓存按 `updatedAt` 择新恢复
+- 目的：刷新、换浏览器、换设备都能接着上次的轮次继续（只靠 localStorage 换浏览器就会丢）
 
 ### 曾经踩过的坑
 

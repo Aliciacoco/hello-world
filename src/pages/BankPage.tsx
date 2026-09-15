@@ -20,7 +20,7 @@ function newestFirst<T extends { id?: string; date?: number }>(list: T[]): T[] {
   return [...list].sort((a, b) => uploadTime(b) - uploadTime(a))
 }
 
-type BankTab = 'idiom' | 'math' | 'judgement' | 'analysis' | 'changshi' | 'calc' | 'shenlun'
+type BankTab = 'idiom' | 'verbal' | 'math' | 'judgement' | 'analysis' | 'changshi' | 'calc' | 'shenlun'
 
 interface Review {
   date: number
@@ -35,6 +35,7 @@ interface BankItem {
   options?: string
   answer: string
   explanation: string
+  trapNote?: string
   reviews?: Review[]
 }
 
@@ -170,7 +171,8 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
 }) {
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation })
+  const [showTrap, setShowTrap] = useState(false)
+  const [form, setForm] = useState({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation, trapNote: item.trapNote ?? '' })
   const [saving, setSaving] = useState(false)
 
   const handleDeleteReview = async (index: number) => {
@@ -226,6 +228,8 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
               <input className={styles.editField} value={form.answer} onChange={e => setForm(f => ({ ...f, answer: e.target.value }))} />
               <label className={styles.editLabel}>解析</label>
               <textarea className={styles.editArea} value={form.explanation} rows={4} onChange={e => setForm(f => ({ ...f, explanation: e.target.value }))} />
+              <label className={styles.editLabel}>出题人思路</label>
+              <textarea className={styles.editArea} value={form.trapNote} rows={4} onChange={e => setForm(f => ({ ...f, trapNote: e.target.value }))} />
               <div className={styles.actions}>
                 <button className={styles.saveBtn} onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '保存'}</button>
                 <button className={styles.cancelBtn} onClick={() => setEditing(false)}>取消</button>
@@ -237,9 +241,17 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
               {item.options && <pre className={styles.options}>{formatOptions(item.options)}</pre>}
               <p className={styles.answer}><strong>答案：</strong>{item.answer}</p>
               <p className={styles.explanation}>{item.explanation}</p>
+              {item.trapNote && (
+                <>
+                  <button className={styles.trapToggle} onClick={() => setShowTrap(v => !v)}>
+                    {showTrap ? '收起出题人思路 ▲' : '看出题人思路 ▼'}
+                  </button>
+                  {showTrap && <p className={styles.trapNote}>{item.trapNote}</p>}
+                </>
+              )}
               {item.reviews && item.reviews.length > 0 && <ReviewList reviews={item.reviews} onDeleteReview={handleDeleteReview} />}
               <div className={styles.actions}>
-                <button className={styles.editBtn} onClick={() => { setForm({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation }); setEditing(true) }}>编辑</button>
+                <button className={styles.editBtn} onClick={() => { setForm({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation, trapNote: item.trapNote ?? '' }); setEditing(true) }}>编辑</button>
                 <button className={styles.deleteBtn} onClick={handleDelete}>删除</button>
               </div>
             </>
@@ -327,6 +339,7 @@ function ShenlunBankItem({ item, onDelete }: { item: ShenlunRecord; onDelete: (i
 
 const TAB_CONFIG: { key: BankTab; label: string; apiPath: string }[] = [
   { key: 'idiom', label: '成语辨析', apiPath: '/api/bank/idiom' },
+  { key: 'verbal', label: '言语理解', apiPath: '/api/bank/verbal' },
   { key: 'math', label: '数量关系', apiPath: '/api/bank/math' },
   { key: 'judgement', label: '判断推理', apiPath: '/api/bank/judgement' },
   { key: 'analysis', label: '资料分析', apiPath: '/api/bank/analysis' },

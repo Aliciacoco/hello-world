@@ -190,6 +190,34 @@
   font-style: italic;
 }
 
+/* 出题人思路（折叠） */
+.trapToggle {
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.trapToggle:hover { color: var(--accent); }
+
+.trapNote {
+  color: var(--text-tertiary);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  margin: 0;
+  padding: 9px 12px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  white-space: pre-wrap;
+  transition: border-radius 0.3s, border-color 0.3s, background 0.3s;
+}
+
 /* 答错记录 */
 .reviews {
   border-top: 1px solid var(--separator);

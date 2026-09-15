@@ -382,6 +382,54 @@
   word-break: break-word;
 }
 
+/* ── 出题人思路（折叠） ───────────────────────── */
+.trapToggle {
+  align-self: flex-start;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.trapToggle:hover { color: var(--accent); }
+
+.trapNote {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  line-height: 1.8;
+  margin: 0;
+  padding: 10px 13px;
+  background: var(--bg-inset);
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  animation: fadeIn 0.2s ease-out;
+  transition: border-radius 0.3s, border-color 0.3s, background 0.3s;
+}
+
+/* ── 批量导入 ────────────────────────────────── */
+.bulkDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+.bulkHint {
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  margin: 0;
+}
+
+.bulkSuccess {
+  color: var(--green);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 /* ── 状态文字 ────────────────────────────────── */
 .hint {
   color: var(--text-tertiary);

@@ -12,6 +12,8 @@ interface PointsConfig {
   judgement_upload: number
   analysis_practice: number
   analysis_upload: number
+  verbal_practice: number
+  verbal_upload: number
 }
 
 const CONFIG_LABELS: Record<keyof PointsConfig, string> = {
@@ -25,6 +27,8 @@ const CONFIG_LABELS: Record<keyof PointsConfig, string> = {
   judgement_upload: '🔍 判断推理·录题',
   analysis_practice: '📈 资料分析·练题',
   analysis_upload: '📈 资料分析·录题',
+  verbal_practice: '📝 言语理解·练题',
+  verbal_upload: '📝 言语理解·录题',
 }
 
 export default function ConfigPage() {

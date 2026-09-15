@@ -12,6 +12,7 @@ interface BankQuestion {
   options: string
   answer: string
   explanation: string
+  trapNote?: string
 }
 
 interface Props {
@@ -19,6 +20,8 @@ interface Props {
   bankType: string
   pointsPerCorrect: number
   openEnded?: boolean
+  /** 开启批量导入（读取整理好的 JSON 文件一次性入题库） */
+  bulkImport?: boolean
 }
 
 // 确保每个选项单独一行，兼容 AI 输出格式不一的情况（上传预览兜底用）
@@ -49,7 +52,7 @@ function parseOptions(raw: string): { letter: string; text: string }[] {
     .filter((x): x is { letter: string; text: string } => x !== null)
 }
 
-export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnded = false }: Props) {
+export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnded = false, bulkImport = false }: Props) {
   const [mode, setMode] = useState<Mode>('practice')
 
   const {
@@ -71,8 +74,12 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
   const [uploadedItem, setUploadedItem] = useState<BankQuestion | null>(null)
+  const [showTrap, setShowTrap] = useState(false)
+  const [bulkMsg, setBulkMsg] = useState('')
+  const [bulkError, setBulkError] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const bulkInputRef = useRef<HTMLInputElement>(null)
 
   const recordPractice = (item: BankQuestion, answer: string, correct: boolean) => {
     fetch(`/api/bank/${bankType}/${item.id}/review`, {
@@ -140,6 +147,7 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
     setUserAnswer('')
     setIsCorrect(null)
     setAiFeedback('')
+    setShowTrap(false)
     setPhase('question')
     next()
   }
@@ -186,6 +194,33 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
       setUploadError('上传失败，请重试')
     } finally {
       setUploading(false)
+    }
+  }
+
+  // 批量导入：读取 JSON（数组，或 {items:[...]}），交给服务端校验+判重
+  const handleBulkImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBulkMsg('')
+    setBulkError('')
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text)
+      const items = Array.isArray(parsed) ? parsed : parsed?.items
+      if (!Array.isArray(items) || items.length === 0) throw new Error('empty')
+      const res = await fetch(`/api/bank/${bankType}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      })
+      if (!res.ok) throw new Error('request')
+      const data = await res.json()
+      setBulkMsg(`✓ 导入 ${data.imported} 道，跳过重复/无效 ${data.skipped} 道`)
+      reload()
+    } catch {
+      setBulkError('导入失败：请确认文件是题目 JSON（数组或 {items:[...]}）')
+    } finally {
+      if (bulkInputRef.current) bulkInputRef.current.value = ''
     }
   }
 
@@ -334,6 +369,15 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                   </div>
                 )}
                 <p className={styles.explanation}>{question.explanation}</p>
+                {question.trapNote && (
+                  <>
+                    <button
+                      className={styles.trapToggle}
+                      onClick={() => setShowTrap(v => !v)}
+                    >{showTrap ? '收起出题人思路 ▲' : '看出题人思路 ▼'}</button>
+                    {showTrap && <p className={styles.trapNote}>{question.trapNote}</p>}
+                  </>
+                )}
                 <button className={styles.btn} onClick={handleNext}>下一题</button>
               </>
             )}
@@ -386,6 +430,17 @@ export default function ExamCard({ subject, bankType, pointsPerCorrect, openEnde
                 <button className={styles.btn} onClick={handleUpload} disabled={uploading}>
                   {uploading ? 'AI 提取中...' : '提取并上传'}
                 </button>
+                {bulkImport && (
+                  <>
+                    <div className={styles.bulkDivider} />
+                    <p className={styles.bulkHint}>已有整理好的题目文件？可一次性导入</p>
+                    <button className={styles.uploadBtn} onClick={() => bulkInputRef.current?.click()}>批量导入 JSON</button>
+                    <input ref={bulkInputRef} type="file" accept=".json,application/json"
+                      style={{ display: 'none' }} onChange={handleBulkImport} />
+                    {bulkMsg && <p className={styles.bulkSuccess}>{bulkMsg}</p>}
+                    {bulkError && <p className={styles.error}>{bulkError}</p>}
+                  </>
+                )}
               </>
             )}
           </>

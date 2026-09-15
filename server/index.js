@@ -770,6 +770,9 @@ const CHANGSHI_EXTRACT_PROMPT = `请从这道常识题中提取信息，并丰�
 ③ answer：填答案的文字内容——如果原题是选择题，把正确选项对应的文字内容完整写出来，禁止只填A/B/C/D字母；
 ④ explanation：①先说清楚为什么是这个答案——给出背景、原因、事件来龙去脉；②再补充1-2个帮助记忆的联想或规律，比如时间节点的故事背景、对比记忆法、关键词联想等；③语言口语化自然，整体150字以内。`
 
+const VERBAL_EXTRACT_PROMPT = `请从这道言语理解题中提取以下信息，严格按JSON格式输出，不要有多余文字：
+{"stem":"题干（不含选项）","options":"A. … B. … C. … D. …（如果有选项，每个选项之间用\\n分隔）","answer":"答案字母，只能填A/B/C/D","explanation":"题目解析（只放解题分析本身）","trapNote":"出题人的命题思路、陷阱设置说明（原文有才填，没有填空字符串）"}`
+
 app.post('/api/exam/extract', async (req, res) => {
   const { text, image } = req.body
   if (!text && !image) return res.status(400).json({ error: '请提供文字或图片' })
@@ -792,6 +795,7 @@ const IDIOM_BANK_FILE = path.join(DATA_DIR, 'idiom_bank.json')
 const JUDGEMENT_BANK_FILE = path.join(DATA_DIR, 'judgement_bank.json')
 const ANALYSIS_BANK_FILE = path.join(DATA_DIR, 'analysis_bank.json')
 const CHANGSHI_BANK_FILE = path.join(DATA_DIR, 'changshi_bank.json')
+const VERBAL_BANK_FILE = path.join(DATA_DIR, 'verbal_bank.json')
 const POINTS_FILE = path.join(DATA_DIR, 'points.json')
 const POINTS_CONFIG_FILE = path.join(DATA_DIR, 'points_config.json')
 
@@ -806,11 +810,14 @@ const DEFAULT_POINTS_CONFIG = {
   judgement_upload: 1,
   analysis_practice: 1,
   analysis_upload: 1,
+  verbal_practice: 1,
+  verbal_upload: 1,
 }
 
 function readPointsConfig() {
   try {
-    return JSON.parse(fs.readFileSync(POINTS_CONFIG_FILE, 'utf8'))
+    // 与默认值合并，保证新增科目（如言语理解）在老配置文件上也有默认分值
+    return { ...DEFAULT_POINTS_CONFIG, ...JSON.parse(fs.readFileSync(POINTS_CONFIG_FILE, 'utf8')) }
   } catch {
     return { ...DEFAULT_POINTS_CONFIG }
   }
@@ -1105,7 +1112,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
       const newItem = { id: `${Date.now()}`, ...extracted, reviews: [] }
       bank.push(newItem)
       writeBank(file, bank)
-      const subjectName = { judgement: '判断推理', analysis: '资料分析', changshi: '常识' }[prefix] || prefix
+      const subjectName = { judgement: '判断推理', analysis: '资料分析', changshi: '常识', verbal: '言语理解' }[prefix] || prefix
       const pointsConfig = readPointsConfig()
       const uploadKey = `${prefix}_upload`
       const uploadPoints = pointsConfig[uploadKey] || 1
@@ -1115,6 +1122,39 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
     } catch (e) {
       res.status(500).json({ error: e.message })
     }
+  })
+
+  // 批量导入（Excel/整理好的题目 JSON）：逐条校验，按题干判重（库内已有 + 本批内部）
+  app.post(`/api/bank/${prefix}/import`, (req, res) => {
+    const rawItems = Array.isArray(req.body) ? req.body : (Array.isArray(req.body?.items) ? req.body.items : [])
+    if (rawItems.length === 0) return res.status(400).json({ error: '没有可导入的题目' })
+    const normalize = s => String(s || '').replace(/\s+/g, '').trim()
+    const bank = readBank(file)
+    const seen = new Set(bank.map(q => normalize(q.stem)))
+    const added = []
+    let skipped = 0
+    const base = Date.now()
+    for (const raw of rawItems) {
+      const stem = String(raw?.stem || '').trim()
+      const answer = String(raw?.answer || '').trim()
+      if (!stem || !answer) { skipped++; continue }
+      const key = normalize(stem)
+      if (seen.has(key)) { skipped++; continue }
+      seen.add(key)
+      const item = {
+        id: `${base + added.length}`,
+        stem,
+        options: String(raw?.options || '').trim(),
+        answer,
+        explanation: String(raw?.explanation || '').trim(),
+        reviews: [],
+      }
+      const trapNote = String(raw?.trapNote || '').trim()
+      if (trapNote) item.trapNote = trapNote
+      added.push(item)
+    }
+    if (added.length > 0) writeBank(file, [...bank, ...added])
+    res.json({ imported: added.length, skipped, total: bank.length + added.length })
   })
 
   app.patch(`/api/bank/${prefix}/:id/review`, (req, res) => {
@@ -1144,11 +1184,12 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
     const bank = readBank(file)
     const idx = bank.findIndex(q => q.id === req.params.id)
     if (idx === -1) return res.status(404).json({ error: '题目不存在' })
-    const { stem, options, answer, explanation } = req.body
+    const { stem, options, answer, explanation, trapNote } = req.body
     if (stem != null) bank[idx].stem = stem
     if (options != null) bank[idx].options = options
     if (answer != null) bank[idx].answer = answer
     if (explanation != null) bank[idx].explanation = explanation
+    if (trapNote != null) bank[idx].trapNote = trapNote
     writeBank(file, bank)
     res.json(bank[idx])
   })
@@ -1193,6 +1234,7 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
 makeExamBankRoutes('judgement', JUDGEMENT_BANK_FILE)
 makeExamBankRoutes('analysis', ANALYSIS_BANK_FILE)
 makeExamBankRoutes('changshi', CHANGSHI_BANK_FILE, CHANGSHI_EXTRACT_PROMPT, { answerPoints: 0.5, subjectName: '常识' })
+makeExamBankRoutes('verbal', VERBAL_BANK_FILE, VERBAL_EXTRACT_PROMPT)
 
 // 编辑/删除接口
 app.put('/api/bank/math/:id', (req, res) => {

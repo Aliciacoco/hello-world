@@ -14,6 +14,7 @@ export default function Home() {
           <FractionPractice />
         </div>
         <IdiomCard />
+        <ExamCard subject="言语理解" bankType="verbal" pointsPerCorrect={1} bulkImport />
         <ExamCard subject="常识" bankType="changshi" pointsPerCorrect={0.5} openEnded />
         <ExamCard subject="数量关系" bankType="math" pointsPerCorrect={1} />
         <ExamCard subject="判断推理" bankType="judgement" pointsPerCorrect={1} />

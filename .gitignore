@@ -12,8 +12,10 @@ server/idiom_bank.json
 server/judgement_bank.json
 server/analysis_bank.json
 server/changshi_bank.json
+server/verbal_bank.json
 server/shenlun_bank.json
 server/points.json
+server/points_config.json
 server/theme_images.json
 server/theme-images/
 server/daily_checkin.json

@@ -808,9 +808,16 @@ const SEEDS_DIR = path.join(__dirname, 'seeds')
 
 function seedBankIfMissing(file, seedFileName) {
   try {
-    if (fs.existsSync(file)) return
     const seedPath = path.join(SEEDS_DIR, seedFileName)
     if (!fs.existsSync(seedPath)) return
+    // 已有非空题库 = 用户数据，一律不动
+    if (fs.existsSync(file)) {
+      const raw = fs.readFileSync(file, 'utf8').trim()
+      if (raw) {
+        const cur = JSON.parse(raw)
+        if (Array.isArray(cur) && cur.length > 0) return
+      }
+    }
     fs.copyFileSync(seedPath, file)
     console.log(`[seed] 初始化题库 ${path.basename(file)} ← seeds/${seedFileName}`)
   } catch (e) {

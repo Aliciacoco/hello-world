@@ -49,8 +49,8 @@ round_practice.json     各题库的练习轮次进度（跨浏览器/设备恢�
 数据文件不进 git 的代价是「新题库首次上线时线上是空的」。解决办法是 `server/seeds/`：
 
 - 初始题库放在 `server/seeds/<name>_seed.json`（**进 git**，随 `server/` 一起 rsync 到服务器）
-- 服务端启动时调用 `seedBankIfMissing(目标文件, seed 文件名)`：**只在目标文件不存在时**复制一份过去
-- 文件已存在（哪怕内容是空数组）就不会再动，用户后续增删改不受影响；pm2 重启同理
+- 服务端启动时调用 `seedBankIfMissing(目标文件, seed 文件名)`：**目标文件不存在、内容为空、或还是空数组时**复制一份过去
+- 已经有题目（非空数组）就绝不会再动，用户后续增删改不受影响；pm2 重启同理
 
 新增题库时：把初始数据放进 `server/seeds/`，再在 `server/index.js` 的路径定义区加一行 `seedBankIfMissing(XXX_BANK_FILE, 'xxx_seed.json')`。
 

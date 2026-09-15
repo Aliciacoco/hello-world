@@ -16,6 +16,7 @@ server/verbal_bank.json
 server/shenlun_bank.json
 server/points.json
 server/points_config.json
+server/province_materials.json
 server/theme_images.json
 server/theme-images/
 server/daily_checkin.json

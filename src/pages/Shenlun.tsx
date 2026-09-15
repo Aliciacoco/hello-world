@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import examStyles from './ExamCard.module.css'
 import styles from './Shenlun.module.css'
 
@@ -10,16 +10,46 @@ interface JudgeResult {
   exemplar: string
 }
 
+interface Province {
+  code: string
+  name: string
+}
+
 const ARTICLE_MAX = 1500
+const PROVINCE_STORAGE_KEY = 'shenlun_province'
 
 export default function ShenlunCard() {
   const [phase, setPhase] = useState<Phase>('idle')
+  const [province, setProvince] = useState('national')
+  const [provinceName, setProvinceName] = useState('全国')
+  const [provinceList, setProvinceList] = useState<Province[]>([{ code: 'national', name: '全国' }])
   const [topic, setTopic] = useState('')
   const [title, setTitle] = useState('')
   const [article, setArticle] = useState('')
   const [result, setResult] = useState<JudgeResult | null>(null)
   const [showExemplar, setShowExemplar] = useState(false)
   const [error, setError] = useState('')
+
+  // 拉省份清单，并恢复上次选择的省份
+  useEffect(() => {
+    const saved = localStorage.getItem(PROVINCE_STORAGE_KEY) || 'national'
+    fetch('/api/shenlun/provinces')
+      .then(r => r.json())
+      .then((list: Province[]) => {
+        if (!Array.isArray(list) || !list.length) return
+        setProvinceList(list)
+        const hit = list.find(p => p.code === saved)
+        if (hit) { setProvince(hit.code); setProvinceName(hit.name) }
+      })
+      .catch(() => {})
+  }, [])
+
+  const changeProvince = (code: string) => {
+    setProvince(code)
+    localStorage.setItem(PROVINCE_STORAGE_KEY, code)
+    const hit = provinceList.find(p => p.code === code)
+    setProvinceName(hit ? hit.name : '全国')
+  }
 
   const generateTopic = async () => {
     setPhase('generating')
@@ -29,10 +59,18 @@ export default function ShenlunCard() {
     setResult(null)
     setShowExemplar(false)
     try {
-      const res = await fetch('/api/shenlun/topic', { method: 'POST' })
+      const res = await fetch('/api/shenlun/topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ province }),
+      })
       if (!res.ok) throw new Error()
       const data = await res.json()
       setTopic(data.topic)
+      if (data.province) {
+        setProvince(data.province)
+        setProvinceName(data.provinceName || '全国')
+      }
       setPhase('writing')
     } catch {
       setError('出题失败，请重试')
@@ -50,7 +88,7 @@ export default function ShenlunCard() {
       const res = await fetch('/api/shenlun/judge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, title: title.trim(), article: article.trim() }),
+        body: JSON.stringify({ topic, title: title.trim(), article: article.trim(), province }),
       })
       if (!res.ok) throw new Error()
       const data: JudgeResult = await res.json()
@@ -71,7 +109,7 @@ export default function ShenlunCard() {
       await fetch('/api/shenlun/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, title, article, ...result }),
+        body: JSON.stringify({ topic, title, article, ...result, province }),
       })
       setPhase('saved')
     } catch {
@@ -80,11 +118,27 @@ export default function ShenlunCard() {
     }
   }
 
+  const topicLabel = province === 'national' ? '题目' : `题目 · ${provinceName}`
+
   return (
     <div className={examStyles.container}>
       <div className={examStyles.card}>
         <div className={examStyles.header}>
           <span className={examStyles.label}>申论</span>
+          {phase === 'idle' ? (
+            <select
+              className={styles.provinceSelect}
+              value={province}
+              onChange={e => changeProvince(e.target.value)}
+              title="选择命题省份，题目的话题与案例将取自该省"
+            >
+              {provinceList.map(p => (
+                <option key={p.code} value={p.code}>{p.name}</option>
+              ))}
+            </select>
+          ) : province !== 'national' ? (
+            <span className={styles.provinceBadge}>{provinceName}</span>
+          ) : null}
         </div>
 
         {phase === 'idle' && (
@@ -95,13 +149,13 @@ export default function ShenlunCard() {
         )}
 
         {phase === 'generating' && (
-          <p className={styles.loading}>AI 出题中...</p>
+          <p className={styles.loading}>AI 出题中{province !== 'national' ? `（${provinceName}）` : ''}...</p>
         )}
 
         {phase === 'writing' && (
           <>
             <div className={styles.topicBox}>
-              <span className={styles.topicLabel}>题目</span>
+              <span className={styles.topicLabel}>{topicLabel}</span>
               <p className={styles.topicText}>{topic}</p>
             </div>
 
@@ -145,7 +199,7 @@ export default function ShenlunCard() {
         {(phase === 'result' || phase === 'saving' || phase === 'saved') && result && (
           <>
             <div className={styles.topicBox}>
-              <span className={styles.topicLabel}>题目</span>
+              <span className={styles.topicLabel}>{topicLabel}</span>
               <p className={styles.topicText}>{topic}</p>
             </div>
 

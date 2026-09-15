@@ -4,6 +4,7 @@ const fs = require('fs')
 const path = require('path')
 const https = require('https')
 const http = require('http')
+const { PROVINCES, SEED_MATERIALS, buildMaterialPrompt, isValidMaterial } = require('./provinces')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -1378,32 +1379,121 @@ function writeShenlun(data) {
   fs.writeFileSync(SHENLUN_BANK_FILE, JSON.stringify(data, null, 2))
 }
 
-app.post('/api/shenlun/topic', async (req, res) => {
+// —— 申论省份命题素材 ——
+// 查找顺序：运行时缓存 → 代码内置预热素材（provinces.js）→ 调 AI 现场生成并落盘缓存。
+// 因此以后往 PROVINCES 里加省份不用手工维护素材，但预热过的省份可以零延迟。
+const PROVINCE_MATERIALS_FILE = path.join(DATA_DIR, 'province_materials.json')
+
+function readMaterialCache() {
+  try { return JSON.parse(fs.readFileSync(PROVINCE_MATERIALS_FILE, 'utf8')) } catch { return {} }
+}
+function writeMaterialCache(data) {
+  try { fs.writeFileSync(PROVINCE_MATERIALS_FILE, JSON.stringify(data, null, 2)) } catch { /* 缓存写失败不影响出题 */ }
+}
+
+function findProvince(code) {
+  return PROVINCES.find(p => p.code === code) || null
+}
+
+function pickRandom(arr, n) {
+  const pool = [...arr]
+  const out = []
+  while (pool.length && out.length < n) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0])
+  return out
+}
+
+// 取某省素材；拿不到返回 null（调用方降级为「只注入省名」）
+async function getProvinceMaterial(code) {
+  const prov = findProvince(code)
+  if (!prov || code === 'national') return null
+  const cache = readMaterialCache()
+  if (isValidMaterial(cache[code])) return cache[code]
+  if (isValidMaterial(SEED_MATERIALS[code])) return SEED_MATERIALS[code]
   try {
-    const content = await callQwen([{
-      role: 'user',
-      content: `你是申论出题老师。请随机生成一道申论大作文题目，要求：
-- 主题贴近国考/省考真题风格（如：乡村振兴、数字经济、基层治理、生态文明、科技创新等）
+    const content = await callQwen([{ role: 'user', content: buildMaterialPrompt(prov.name) }], 1200, 0.7)
+    const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
+    if (!isValidMaterial(json)) return null
+    const material = { code, name: prov.name, topics: json.topics, cases: json.cases, keywords: json.keywords }
+    cache[code] = material
+    writeMaterialCache(cache)
+    return material
+  } catch {
+    return null
+  }
+}
+
+// 把地域约束拼进出题提示词
+function buildTopicPrompt(prov, material, usedTopics) {
+  let prompt = `你是申论出题老师。请随机生成一道申论大作文题目，要求：
+- 主题贴近国考/省考真题风格
 - 每次题目不同，不要重复
 - 只输出题目本身，不要解析，不要提示词
 - 题目长度50-100字，包含背景材料和写作要求
+- 题干中不要出现具体的统计数字或未经证实的数据；需要举例时只写真实存在的案例名称`
+
+  if (prov) {
+    prompt += `
+
+地域要求：
+- 命题范围限定为${prov.name}，题干必须包含该省的具体背景材料（地方实践、典型案例、区域特色），使不了解该省情况的考生难以写好`
+    const topics = pickRandom(material?.topics || [], 1)
+    if (topics.length) prompt += `\n- 建议围绕该省的这个方向深入命题：${topics[0]}`
+    const cases = pickRandom(material?.cases || [], 3)
+    if (cases.length) prompt += `\n- 可结合该省真实案例（择要使用，不要堆砌）：${cases.join('、')}`
+    const keywords = pickRandom(material?.keywords || [], 3)
+    if (keywords.length) prompt += `\n- 可自然融入的核心概念：${keywords.join('、')}`
+    if (usedTopics.length) prompt += `\n- 以下题目最近已出过，必须避开其角度：${usedTopics.join(' / ')}`
+  }
+
+  return prompt + `
 
 格式要求（严格JSON，不要有多余文字）：
-{"topic":"题目内容"}`,
-    }])
+{"topic":"题目内容"}`
+}
+
+app.get('/api/shenlun/provinces', (req, res) => {
+  res.json(PROVINCES)
+})
+
+app.post('/api/shenlun/topic', async (req, res) => {
+  const provinceCode = typeof req.body?.province === 'string' ? req.body.province : 'national'
+  const prov = findProvince(provinceCode)
+  const region = prov && prov.code !== 'national' ? prov : null
+  try {
+    const material = region ? await getProvinceMaterial(region.code) : null
+    // 该省最近出过的题目，交给 AI 避开重复角度
+    const usedTopics = region
+      ? readShenlun().filter(it => it.province === region.code && it.topic).slice(0, 8).map(it => String(it.topic).slice(0, 40))
+      : []
+    const content = await callQwen([{ role: 'user', content: buildTopicPrompt(region, material, usedTopics) }])
     const json = JSON.parse(content.trim().replace(/```json|```/g, ''))
-    res.json(json)
+    res.json({
+      topic: json.topic,
+      province: region ? region.code : 'national',
+      provinceName: region ? region.name : '全国',
+    })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
 })
 
 app.post('/api/shenlun/judge', async (req, res) => {
-  const { topic, title, article } = req.body
+  const { topic, title, article, province: provinceCode } = req.body
   if (!topic || !title || !article) {
     return res.status(400).json({ error: '缺少参数' })
   }
   const essay = `标题：${title}\n\n${article}`
+
+  // 省份限定：题干是本省的，范文也必须举本省案例，否则很割裂
+  const prov = findProvince(provinceCode)
+  const region = prov && prov.code !== 'national' ? prov : null
+  let regionLine = ''
+  if (region) {
+    const material = await getProvinceMaterial(region.code)
+    const cases = pickRandom(material?.cases || [], 3)
+    regionLine = `\n本题命题范围限定为${region.name}：批改时请按该省语境点评；范文必须结合${region.name}的真实案例与地方特色来论证${cases.length ? `（可参考：${cases.join('、')}）` : ''}，不要写成放之四海皆准的通用范文。`
+  }
+
   try {
     const content = await callQwen([{
       role: 'user',
@@ -1413,6 +1503,7 @@ app.post('/api/shenlun/judge', async (req, res) => {
 
 学生作文：
 ${essay}
+${regionLine}
 
 评分标准（满分10分）：
 - 6分：结构完整，但论证空洞，主题切合但表达平庸，缺乏具体论据
@@ -1425,6 +1516,7 @@ ${essay}
 - 按上述标准客观给分，不要虚高
 - 重点考察：主题切合度、论点清晰度、论证有力性、结构完整性、语言表达
 - feedback 用口语化方式指出主要优点和不足，200字以内
+- 点评和范文中如需引用数据或事例，只使用真实存在、可查证的内容，不要编造统计数字
 - 范文写在 ---EXEMPLAR--- 分隔符之后（纯文本，不要用JSON包裹），要求：
   * 字数1000-1200字
   * 首段首句一句话亮明总论点
@@ -1464,9 +1556,11 @@ ${essay}
 })
 
 app.post('/api/shenlun/save', (req, res) => {
-  const { topic, title, article, score, feedback, exemplar } = req.body
+  const { topic, title, article, score, feedback, exemplar, province: provinceCode } = req.body
   if (!topic) return res.status(400).json({ error: '缺少题目' })
   const bank = readShenlun()
+  const prov = findProvince(provinceCode)
+  const region = prov && prov.code !== 'national' ? prov : null
   const item = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     topic,
@@ -1475,6 +1569,8 @@ app.post('/api/shenlun/save', (req, res) => {
     score,
     feedback,
     exemplar,
+    province: region ? region.code : 'national',
+    provinceName: region ? region.name : '全国',
     date: Date.now(),
   }
   bank.unshift(item)

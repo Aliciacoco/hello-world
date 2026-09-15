@@ -59,6 +59,8 @@ interface ShenlunRecord {
   score?: number
   feedback?: string
   exemplar?: string
+  province?: string
+  provinceName?: string
   date: number
 }
 
@@ -310,6 +312,9 @@ function ShenlunBankItem({ item, onDelete }: { item: ShenlunRecord; onDelete: (i
       <div className={styles.itemHeader} onClick={() => setOpen(v => !v)}>
         <span className={styles.itemTitle}>{item.topic.slice(0, 40)}{item.topic.length > 40 ? '…' : ''}</span>
         <span className={styles.itemMeta}>
+          {item.province && item.province !== 'national' && (
+            <span className={styles.provinceTag}>{item.provinceName || item.province}</span>
+          )}
           {item.score != null && <span className={styles.shenlunScore}>{item.score}/10</span>}
           <span className={styles.chevron}>{open ? '▲' : '▼'}</span>
         </span>

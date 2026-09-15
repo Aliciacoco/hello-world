@@ -6,6 +6,37 @@
   padding: 16px 0;
 }
 
+/* 省份选择（卡片右上角） */
+.provinceSelect {
+  font-size: 0.76rem;
+  font-family: 'Lora', 'LXGW WenKai', serif;
+  color: var(--text-secondary);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 6px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, color 0.15s, background 0.3s;
+}
+
+.provinceSelect:hover,
+.provinceSelect:focus {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 出题后展示的省份标签 */
+.provinceBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(180, 160, 120, 0.12);
+  border-radius: 6px;
+  padding: 3px 8px;
+  letter-spacing: 0.02em;
+}
+
 /* 题目展示 */
 .topicBox {
   background: var(--bg-inset);

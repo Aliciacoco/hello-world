@@ -37,6 +37,18 @@
   letter-spacing: 0.02em;
 }
 
+/* 恢复上次草稿的提示 */
+.draftHint {
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  margin: 0;
+  padding: 7px 11px;
+  background: var(--bg-inset);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+}
+
 /* 题目展示 */
 .topicBox {
   background: var(--bg-inset);

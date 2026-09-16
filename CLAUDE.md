@@ -40,6 +40,7 @@ verbal_bank.json        言语理解题库
 shenlun_bank.json       申论练习记录
 points.json             积分余额和历史
 round_practice.json     各题库的练习轮次进度（跨浏览器/设备恢复用）
+shenlun_draft.json      申论进行中的题目草稿（跨浏览器/设备恢复用）
 ```
 
 **这些文件已从 git 移除（.gitignore 里有），不会被 rsync 覆盖。**
@@ -61,6 +62,15 @@ round_practice.json     各题库的练习轮次进度（跨浏览器/设备恢�
 - 前端 `src/hooks/useRoundPractice.ts`，**双写**：localStorage（即时、离线可用）+ 服务端 `PUT /api/round/:bankType`（防抖 400ms）
 - 进页面时 `GET /api/round/:bankType`，与本地缓存按 `updatedAt` 择新恢复
 - 目的：刷新、换浏览器、换设备都能接着上次的轮次继续（只靠 localStorage 换浏览器就会丢）
+
+### 申论题目草稿（shenlun_draft.json）
+
+申论是 AI 实时出题（无题库），出过的题只存 React state，刷新就没了。现改为：
+
+- `GET/PUT /api/shenlun/draft`，存 `{topic, title, article, province, provinceName, updatedAt}`
+- 前端 `src/pages/Shenlun.tsx` 双写（同轮次进度机制）：本地即时 + 服务端防抖 400ms；进页面择新恢复并显示「已恢复上次未完成的题目」提示
+- 清空时机：点「换一题」→ 新题生成成功后覆盖；点「提交批改」→ 判卷成功后清空（PUT topic 为空即删除文件）
+- 出题失败不丢旧题：generateTopic 失败时恢复原 phase，旧题/草稿原样保留
 
 ### 曾经踩过的坑
 

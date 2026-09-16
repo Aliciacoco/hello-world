@@ -1445,6 +1445,47 @@ function writeShenlun(data) {
   fs.writeFileSync(SHENLUN_BANK_FILE, JSON.stringify(data, null, 2))
 }
 
+// —— 申论题目草稿（出过的题 + 标题 + 正文，刷新/换浏览器/换设备都能接着写）——
+// 规则：点「换一题」由新题直接覆盖；点「提交批改」判卷成功后清空。
+const SHENLUN_DRAFT_FILE = path.join(DATA_DIR, 'shenlun_draft.json')
+
+function readShenlunDraft() {
+  try {
+    const d = JSON.parse(fs.readFileSync(SHENLUN_DRAFT_FILE, 'utf8'))
+    return d && typeof d === 'object' && typeof d.topic === 'string' && d.topic.trim() ? d : null
+  } catch {
+    return null
+  }
+}
+
+app.get('/api/shenlun/draft', (req, res) => {
+  res.json(readShenlunDraft())
+})
+
+app.put('/api/shenlun/draft', (req, res) => {
+  const b = req.body || {}
+  const topic = typeof b.topic === 'string' ? b.topic.trim() : ''
+  // 题目为空 = 清空草稿
+  if (!topic) {
+    try { fs.unlinkSync(SHENLUN_DRAFT_FILE) } catch { /* 本来就没有，忽略 */ }
+    return res.json({ ok: true, cleared: true })
+  }
+  const draft = {
+    topic: b.topic,
+    title: typeof b.title === 'string' ? b.title : '',
+    article: typeof b.article === 'string' ? b.article : '',
+    province: typeof b.province === 'string' ? b.province : 'national',
+    provinceName: typeof b.provinceName === 'string' ? b.provinceName : '全国',
+    updatedAt: Date.now(),
+  }
+  try {
+    fs.writeFileSync(SHENLUN_DRAFT_FILE, JSON.stringify(draft, null, 2))
+    res.json({ ok: true })
+  } catch (e) {
+    res.status(500).json({ error: '草稿保存失败' })
+  }
+})
+
 // —— 申论省份命题素材 ——
 // 查找顺序：运行时缓存 → 代码内置预热素材（provinces.js）→ 调 AI 现场生成并落盘缓存。
 // 因此以后往 PROVINCES 里加省份不用手工维护素材，但预热过的省份可以零延迟。

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import examStyles from './ExamCard.module.css'
 import styles from './Shenlun.module.css'
 
@@ -15,8 +15,45 @@ interface Province {
   name: string
 }
 
+interface Draft {
+  topic: string
+  title: string
+  article: string
+  province: string
+  provinceName: string
+  updatedAt: number
+}
+
 const ARTICLE_MAX = 1500
 const PROVINCE_STORAGE_KEY = 'shenlun_province'
+const DRAFT_STORAGE_KEY = 'shenlun_draft'
+
+// —— 草稿本地缓存（离线兜底；服务端那份是主，两边按 updatedAt 择新）——
+function loadLocalDraft(): Draft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+    if (!raw) return null
+    const d = JSON.parse(raw)
+    return d && typeof d.topic === 'string' && d.topic.trim() ? d : null
+  } catch {
+    return null
+  }
+}
+
+function saveLocalDraft(d: Draft | null) {
+  try {
+    if (d) localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(d))
+    else localStorage.removeItem(DRAFT_STORAGE_KEY)
+  } catch {
+    /* 隐私模式等写本地失败，不影响服务端同步 */
+  }
+}
+
+function pickNewer(a: Draft | null, b: Draft | null): Draft | null {
+  if (!a) return b
+  if (!b) return a
+  return (Number(b.updatedAt) || 0) > (Number(a.updatedAt) || 0) ? b : a
+}
 
 export default function ShenlunCard() {
   const [phase, setPhase] = useState<Phase>('idle')
@@ -28,21 +65,75 @@ export default function ShenlunCard() {
   const [article, setArticle] = useState('')
   const [result, setResult] = useState<JudgeResult | null>(null)
   const [showExemplar, setShowExemplar] = useState(false)
+  const [restored, setRestored] = useState(false)
   const [error, setError] = useState('')
 
-  // 拉省份清单，并恢复上次选择的省份
+  // 草稿恢复出来的省份，避免省份清单请求把它覆盖掉
+  const draftProvinceRef = useRef<string | null>(null)
+
+  // 进入页面：恢复上次未完成的题目/草稿 + 拉省份清单
   useEffect(() => {
-    const saved = localStorage.getItem(PROVINCE_STORAGE_KEY) || 'national'
+    let alive = true
+    const local = loadLocalDraft()
+
+    const applyDraft = (d: Draft) => {
+      if (!alive) return
+      setTopic(d.topic)
+      setTitle(d.title || '')
+      setArticle(d.article || '')
+      setProvince(d.province || 'national')
+      setProvinceName(d.provinceName || '全国')
+      draftProvinceRef.current = d.province || 'national'
+      setPhase('writing')
+      setRestored(true)
+    }
+
+    fetch('/api/shenlun/draft')
+      .then(r => r.json())
+      .then((remote: Draft | null) => {
+        const best = pickNewer(local, remote && remote.topic ? remote : null)
+        if (best) applyDraft(best)
+      })
+      .catch(() => { if (local) applyDraft(local) })
+
+    const savedProvince = localStorage.getItem(PROVINCE_STORAGE_KEY) || 'national'
     fetch('/api/shenlun/provinces')
       .then(r => r.json())
       .then((list: Province[]) => {
-        if (!Array.isArray(list) || !list.length) return
+        if (!alive || !Array.isArray(list) || !list.length) return
         setProvinceList(list)
-        const hit = list.find(p => p.code === saved)
+        const hit = list.find(p => p.code === (draftProvinceRef.current || savedProvince))
         if (hit) { setProvince(hit.code); setProvinceName(hit.name) }
       })
       .catch(() => {})
+
+    return () => { alive = false }
   }, [])
+
+  // 题目/草稿变化即持久化：本地立即写，服务端防抖 400ms
+  useEffect(() => {
+    if (!topic.trim()) return
+    const draft: Draft = { topic, title, article, province, provinceName, updatedAt: Date.now() }
+    saveLocalDraft(draft)
+    const timer = setTimeout(() => {
+      fetch('/api/shenlun/draft', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+      }).catch(() => {})
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [topic, title, article, province, provinceName])
+
+  const clearDraft = () => {
+    saveLocalDraft(null)
+    setRestored(false)
+    fetch('/api/shenlun/draft', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: '' }),
+    }).catch(() => {})
+  }
 
   const changeProvince = (code: string) => {
     setProvince(code)
@@ -52,12 +143,10 @@ export default function ShenlunCard() {
   }
 
   const generateTopic = async () => {
+    if (phase === 'generating') return
+    const prevPhase = phase
     setPhase('generating')
     setError('')
-    setTitle('')
-    setArticle('')
-    setResult(null)
-    setShowExemplar(false)
     try {
       const res = await fetch('/api/shenlun/topic', {
         method: 'POST',
@@ -66,7 +155,13 @@ export default function ShenlunCard() {
       })
       if (!res.ok) throw new Error()
       const data = await res.json()
+      // 拿到新题后才清掉旧题与旧草稿；生成失败则原样保留
       setTopic(data.topic)
+      setTitle('')
+      setArticle('')
+      setResult(null)
+      setShowExemplar(false)
+      setRestored(false)
       if (data.province) {
         setProvince(data.province)
         setProvinceName(data.provinceName || '全国')
@@ -74,7 +169,7 @@ export default function ShenlunCard() {
       setPhase('writing')
     } catch {
       setError('出题失败，请重试')
-      setPhase('idle')
+      setPhase(prevPhase)
     }
   }
 
@@ -93,6 +188,7 @@ export default function ShenlunCard() {
       if (!res.ok) throw new Error()
       const data: JudgeResult = await res.json()
       setResult(data)
+      clearDraft() // 已提交批改，题目不再保留
       const pts = Math.round(data.score * 0.5 * 10) / 10
       window.dispatchEvent(new CustomEvent('points-earned', { detail: { amount: pts, activity: 'practice', bankType: 'shenlun' } }))
       setPhase('result')
@@ -154,6 +250,10 @@ export default function ShenlunCard() {
 
         {phase === 'writing' && (
           <>
+            {restored && (
+              <p className={styles.draftHint}>已恢复上次未完成的题目，接着写或点「换一题」</p>
+            )}
+
             <div className={styles.topicBox}>
               <span className={styles.topicLabel}>{topicLabel}</span>
               <p className={styles.topicText}>{topic}</p>

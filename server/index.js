@@ -1253,10 +1253,14 @@ function makeExamBankRoutes(prefix, file, extractPrompt = EXAM_EXTRACT_PROMPT, j
     if (idx === -1) return res.status(404).json({ error: '题目不存在' })
     const { stem, options, answer, explanation, trapNote } = req.body
     if (stem != null) bank[idx].stem = stem
-    if (options != null) bank[idx].options = options
     if (answer != null) bank[idx].answer = answer
     if (explanation != null) bank[idx].explanation = explanation
     if (trapNote != null) bank[idx].trapNote = trapNote
+    if (prefix === 'changshi') {
+      delete bank[idx].options // 常识题一律问答题，不保留选项
+    } else if (options != null) {
+      bank[idx].options = options
+    }
     writeBank(file, bank)
     res.json(bank[idx])
   })

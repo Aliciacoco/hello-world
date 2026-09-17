@@ -177,6 +177,9 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
   const [form, setForm] = useState({ stem: item.stem ?? '', options: item.options ?? '', answer: item.answer, explanation: item.explanation, trapNote: item.trapNote ?? '' })
   const [saving, setSaving] = useState(false)
 
+  // 常识题一律是问答题，没有选项
+  const isQA = bankType === 'changshi'
+
   const handleDeleteReview = async (index: number) => {
     const res = await fetch(`/api/bank/${bankType}/${item.id}/reviews/${index}`, { method: 'DELETE' })
     if (res.ok) {
@@ -191,7 +194,7 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
       const res = await fetch(`/api/bank/${bankType}/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(isQA ? { stem: form.stem, answer: form.answer, explanation: form.explanation } : form),
       })
       if (res.ok) {
         const updated = await res.json()
@@ -224,8 +227,12 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
             <div className={styles.editForm}>
               <label className={styles.editLabel}>题干</label>
               <textarea className={styles.editArea} value={form.stem} rows={3} onChange={e => setForm(f => ({ ...f, stem: e.target.value }))} />
-              <label className={styles.editLabel}>选项</label>
-              <textarea className={styles.editArea} value={form.options} rows={4} onChange={e => setForm(f => ({ ...f, options: e.target.value }))} />
+              {!isQA && (
+                <>
+                  <label className={styles.editLabel}>选项</label>
+                  <textarea className={styles.editArea} value={form.options} rows={4} onChange={e => setForm(f => ({ ...f, options: e.target.value }))} />
+                </>
+              )}
               <label className={styles.editLabel}>答案</label>
               <input className={styles.editField} value={form.answer} onChange={e => setForm(f => ({ ...f, answer: e.target.value }))} />
               <label className={styles.editLabel}>解析</label>
@@ -240,7 +247,7 @@ function ExamBankItem({ item, bankType, onUpdate, onDelete }: {
           ) : (
             <>
               <p className={styles.stem}>{item.stem}</p>
-              {item.options && <pre className={styles.options}>{formatOptions(item.options)}</pre>}
+              {!isQA && item.options && <pre className={styles.options}>{formatOptions(item.options)}</pre>}
               <p className={styles.answer}><strong>答案：</strong>{item.answer}</p>
               <p className={styles.explanation}>{item.explanation}</p>
               {item.trapNote && (

@@ -2,6 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export interface RoundBankQuestion {
   id: string
+  /** 录入时间（毫秒时间戳，可选）：用于「最新题排最前」的排序，缺省时按 id 推断 */
+  date?: number
+}
+
+/** 取录入时间：id 是毫秒时间戳时用它，否则退回 date 字段，最后退回数字 id（老数据的顺序编号） */
+function uploadTime(q: { id: string; date?: number }): number {
+  const n = Number(q.id)
+  if (Number.isFinite(n) && n > 1e12) return n
+  if (typeof q.date === 'number') return q.date
+  return Number.isFinite(n) ? n : 0
+}
+
+/** 最新录入的排在最前面 */
+function newestFirstIds<T extends { id: string; date?: number }>(items: T[]): string[] {
+  return [...items]
+    .sort((a, b) => uploadTime(b) - uploadTime(a))
+    .map(q => String(q.id))
 }
 
 /**
@@ -62,20 +79,21 @@ function pickNewer(a: RoundState | null, b: RoundState | null): RoundState | nul
 
 /**
  * 由题库构建/恢复轮次状态：
- * - 无历史：第 1 轮，全量题库按顺序入队
- * - 有历史：过滤已删除的题，把新增的题追加到当前轮队尾
+ * - 无历史：第 1 轮，全量题库按录入时间倒序入队（最新题排最前，从最近的题开始刷）
+ * - 有历史：过滤已删除的题，把新增的题插到当前轮队首（上传后先刷新题）
  */
 function initFromBank<T extends RoundBankQuestion>(items: T[], prev: RoundState | null): RoundState {
-  const ids = items.map(q => String(q.id))
   if (!prev) {
+    const ids = newestFirstIds(items)
     return { round: 1, queue: ids, wrongIds: [], allIds: ids, roundTotal: ids.length, notice: null }
   }
+  const ids = items.map(q => String(q.id))
   const alive = new Set(ids)
   const known = new Set(prev.allIds)
-  const newIds = ids.filter(id => !known.has(id))
+  const newIds = newestFirstIds(items.filter(q => !known.has(String(q.id))))
   return {
     ...prev,
-    queue: prev.queue.filter(id => alive.has(id)).concat(newIds),
+    queue: newIds.concat(prev.queue.filter(id => alive.has(id))),
     wrongIds: prev.wrongIds.filter(id => alive.has(id)),
     allIds: prev.allIds.filter(id => alive.has(id)).concat(newIds),
   }
@@ -83,7 +101,7 @@ function initFromBank<T extends RoundBankQuestion>(items: T[], prev: RoundState 
 
 /**
  * 轮次出题引擎：
- * 第 1 轮按题库顺序从头刷到尾 → 之后每轮只练上一轮答错的题（保持原顺序）→
+ * 第 1 轮从最新录入的题开始刷到最老 → 之后每轮只练上一轮答错的题（保持最新在前的顺序）→
  * 某轮全部做对即完成，可重新开始一轮。
  *
  * 进度双写：本地缓存（localStorage，即时生效、离线可用）+ 服务端（防抖同步，
@@ -204,7 +222,7 @@ export function useRoundPractice<T extends RoundBankQuestion>(bankType: string) 
     })
   }, [])
 
-  /** 重新开始：按当前题库顺序从头来一遍 */
+  /** 重新开始：最新题排最前，从头来一遍 */
   const restart = useCallback(() => {
     setState(initFromBank(bank, null))
   }, [bank])

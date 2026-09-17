@@ -20,7 +20,7 @@ const CONFIG_LABELS: Record<keyof PointsConfig, string> = {
   speed: '⚡ 速算（排列组合 + 分数速算）',
   idiom: '📖 成语辨析',
   changshi: '🧠 常识',
-  shenlun: '✍️ 申论（单篇最高分）',
+  shenlun: '✍️ 申论（单篇最高积分）',
   math_practice: '📊 数量关系·练题',
   math_upload: '📊 数量关系·录题',
   judgement_practice: '🔍 判断推理·练题',

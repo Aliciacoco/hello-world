@@ -127,7 +127,7 @@ const TARGET_LABELS: Record<string, string> = {
   speed:             '⚡ 速算（积分，排列组合+分数速算合计，每题0.1分）',
   idiom:             '📖 成语辨析（积分，每题0.5分）',
   changshi:          '🧠 常识（积分，每题0.5分）',
-  shenlun:           '✍️ 申论（积分，单篇最高5分，累计满即可）',
+  shenlun:           '✍️ 申论（积分，按作文得分比例发放）',
   math_practice:     '📊 数量关系·练题（积分，每题1分）',
   math_upload:       '📊 数量关系·录题（积分，每题1分）',
   analysis_practice: '📈 资料分析·练题（积分，每题1分）',

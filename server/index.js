@@ -1480,6 +1480,15 @@ app.put('/api/shenlun/draft', (req, res) => {
     article: typeof b.article === 'string' ? b.article : '',
     province: typeof b.province === 'string' ? b.province : 'national',
     provinceName: typeof b.provinceName === 'string' ? b.provinceName : '全国',
+    // 批改结果随草稿持久化，切走/刷新后可恢复到结果页
+    result: b.result && typeof b.result === 'object'
+      ? {
+          score: Number(b.result.score) || 0,
+          feedback: typeof b.result.feedback === 'string' ? b.result.feedback : '',
+          exemplar: typeof b.result.exemplar === 'string' ? b.result.exemplar : '',
+          _pts: b.result._pts != null ? Number(b.result._pts) : undefined,
+        }
+      : null,
     updatedAt: Date.now(),
   }
   try {
@@ -1659,8 +1668,9 @@ ${regionLine}
     const maxPoints = pointsConfig.shenlun || 5
     // 按比例计算：如果满分10分，得分8分，最高积分5分，则得 5 * (8/10) = 4分
     const pts = Math.round((maxPoints * score / 10) * 10) / 10
-    earnPoints(pts, `申论练习得${score}分`)
-    res.json({ score, feedback, exemplar })
+    const balance = earnPoints(pts, `申论练习得${score}分`)
+    // _pts/_balance 返回真实积分，前端展示用（避免写死比例导致提示与到账不一致）
+    res.json({ score, feedback, exemplar, _pts: pts, _balance: balance })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }

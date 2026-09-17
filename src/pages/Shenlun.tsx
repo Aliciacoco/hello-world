@@ -8,6 +8,8 @@ interface JudgeResult {
   score: number
   feedback: string
   exemplar: string
+  _pts?: number
+  _balance?: number
 }
 
 interface Province {
@@ -22,6 +24,7 @@ interface Draft {
   province: string
   provinceName: string
   updatedAt: number
+  result?: JudgeResult | null
 }
 
 const ARTICLE_MAX = 1500
@@ -110,10 +113,10 @@ export default function ShenlunCard() {
     return () => { alive = false }
   }, [])
 
-  // 题目/草稿变化即持久化：本地立即写，服务端防抖 400ms
+  // 题目/草稿/批改结果变化即持久化：本地立即写，服务端防抖 400ms
   useEffect(() => {
     if (!topic.trim()) return
-    const draft: Draft = { topic, title, article, province, provinceName, updatedAt: Date.now() }
+    const draft: Draft = { topic, title, article, province, provinceName, result, updatedAt: Date.now() }
     saveLocalDraft(draft)
     const timer = setTimeout(() => {
       fetch('/api/shenlun/draft', {
@@ -123,7 +126,7 @@ export default function ShenlunCard() {
       }).catch(() => {})
     }, 400)
     return () => clearTimeout(timer)
-  }, [topic, title, article, province, provinceName])
+  }, [topic, title, article, province, provinceName, result])
 
   const clearDraft = () => {
     saveLocalDraft(null)
@@ -207,6 +210,8 @@ export default function ShenlunCard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, title, article, ...result, province }),
       })
+      // 已入库，草稿使命完成，清掉
+      clearDraft()
       setPhase('saved')
     } catch {
       setError('保存失败，请重试')
@@ -307,7 +312,7 @@ export default function ShenlunCard() {
               <div className={styles.scoreRow}>
                 <span className={styles.score}>{result.score}</span>
                 <span className={styles.scoreTotal}>/10</span>
-                <span className={styles.pointsHint}>+{Math.round(result.score * 0.5 * 10) / 10} 积分</span>
+                <span className={styles.pointsHint}>+{result._pts != null ? result._pts : Math.round(result.score * 0.5 * 10) / 10} 积分</span>
               </div>
 
               <p className={styles.feedback}>{result.feedback}</p>

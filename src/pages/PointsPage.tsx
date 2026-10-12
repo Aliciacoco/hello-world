@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import MobilePoints from '../components/MobilePoints'
 import styles from './PointsPage.module.css'
 
 interface HistoryEntry {
@@ -17,6 +19,7 @@ interface PointsData {
 }
 
 export default function PointsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState<PointsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [showRedeem, setShowRedeem] = useState(false)
@@ -32,7 +35,25 @@ export default function PointsPage() {
       .catch(() => setLoading(false))
   }
 
-  useEffect(() => { fetchPoints() }, [])
+  useEffect(() => {
+    fetchPoints()
+    const refresh = () => { if (document.visibilityState === 'visible') fetchPoints() }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('points-earned', fetchPoints)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('points-earned', fetchPoints)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (searchParams.get('redeem') === '1') {
+      setShowRedeem(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('redeem')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -139,6 +160,8 @@ export default function PointsPage() {
           </div>
         </div>
       )}
+
+      <MobilePoints />
 
       {/* 历史记录 */}
       <div className={styles.historySection}>

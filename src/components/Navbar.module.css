@@ -53,3 +53,10 @@
   color: var(--accent) !important;
   font-weight: 600 !important;
 }
+
+@media (max-width: 480px) {
+  .nav { padding: 0 12px; }
+  .nav > div:first-child { display: none; }
+  .links { padding-left: 0; }
+  .links a { padding: 5px 8px; white-space: nowrap; }
+}

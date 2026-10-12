@@ -1711,15 +1711,6 @@ app.delete('/api/shenlun/:id', (req, res) => {
   res.json({ ok: true })
 })
 
-const FRONTEND_DIST = path.join(__dirname, '../dist')
-if (fs.existsSync(FRONTEND_DIST)) {
-  app.use(express.static(FRONTEND_DIST))
-  // 所有非 API 路由返回 index.html（支持前端路由）
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
-  })
-}
-
 // 启动时清理题库中的重复选项前缀
 
 function cleanupRemovedFeatureData() {
@@ -1941,6 +1932,18 @@ app.post('/api/checkin/config', (req, res) => {
   writeCheckinConfig(cfg)
   res.json(cfg)
 })
+
+const { attachMobileReminders } = require('./mobile-reminders')
+app.set('trust proxy', 'loopback')
+attachMobileReminders(app, { dataDir: DATA_DIR, readPoints })
+
+// Keep API routes ahead of the SPA fallback, including check-in and mobile reminders.
+app.use('/api', (req, res) => res.status(404).json({ error: '接口不存在' }))
+const FRONTEND_DIST = path.join(__dirname, '../dist')
+if (fs.existsSync(FRONTEND_DIST)) {
+  app.use(express.static(FRONTEND_DIST))
+  app.get('*', (req, res) => res.sendFile(path.join(FRONTEND_DIST, 'index.html')))
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

@@ -23,3 +23,5 @@ server/daily_checkin.json
 server/checkin_config.json
 server/round_practice.json
 server/shenlun_draft.json
+server/mobile_reminders.json
+server/mobile_reminders.json.tmp

@@ -73,3 +73,56 @@ test('damaged data fails visibly and is never replaced by a new check-in', async
   assert.equal((await f.put('2026-10-16', entry)).status, 500)
   assert.equal(fs.readFileSync(file, 'utf8'), '{damaged')
 })
+
+test('morning and bedtime each award 20, and retries, edits and re-check-ins never award twice', async t => {
+  const f = await fixture(t)
+  const pointsFile = path.join(f.dataDir, 'points.json')
+  fs.writeFileSync(pointsFile, JSON.stringify({ balance: 3.5, history: [] }))
+  const morning = await f.put('2026-10-16', { ...entry, bedtime: '', rewards: { study: false, sleep: false } })
+  assert.equal(morning.data._pts, 20)
+  assert.equal(morning.data._balance, 23.5)
+  const evening = await f.put('2026-10-16', entry)
+  assert.equal(evening.data._pts, 20)
+  assert.equal(evening.data._balance, 43.5)
+  const repeated = await Promise.all(Array.from({ length: 5 }, () => f.put('2026-10-16', { ...entry, summary: '改了一下小结' })))
+  assert.ok(repeated.every(result => result.data._pts === 0))
+  await f.put('2026-10-16', { ...entry, studyCompleted: false, bedtime: '' })
+  assert.equal((await f.put('2026-10-16', entry)).data._pts, 0)
+  let points = JSON.parse(fs.readFileSync(pointsFile, 'utf8'))
+  assert.equal(points.balance, 43.5)
+  assert.equal(points.history.length, 2)
+  assert.match(points.history[0].reason, /睡前打卡奖励/)
+  assert.match(points.history[1].reason, /晨学打卡奖励/)
+  // Removing a ledger entry must not clear a reward already claimed for that day.
+  fs.writeFileSync(pointsFile, JSON.stringify({ balance: 3.5, history: [] }))
+  await f.put('2026-10-16', { ...entry, studyCompleted: false, bedtime: '' })
+  assert.equal((await f.put('2026-10-16', entry)).data._pts, 0)
+  points = JSON.parse(fs.readFileSync(pointsFile, 'utf8'))
+  assert.equal(points.balance, 3.5)
+})
+
+test('reward transactions recover safely after a partial write and a different date has separate rewards', async t => {
+  const f = await fixture(t)
+  const pointsFile = path.join(f.dataDir, 'points.json')
+  fs.writeFileSync(pointsFile, JSON.stringify({ balance: 20, history: [
+    { id: 'habit:2026-10-16:study', type: 'earn', amount: 20 },
+  ] }))
+  const recovered = await f.put('2026-10-16', entry)
+  assert.equal(recovered.data._pts, 20) // Only bedtime is new.
+  assert.equal(recovered.data._balance, 40)
+  assert.deepEqual(recovered.data.rewards, { study: true, sleep: true })
+  assert.equal((await f.put('2026-10-15', entry)).data._pts, 40)
+  const points = JSON.parse(fs.readFileSync(pointsFile, 'utf8'))
+  assert.equal(points.balance, 80)
+  assert.equal(points.history.length, 4)
+})
+
+test('legacy completed records do not earn for summary edits and corrupt points never get overwritten', async t => {
+  const f = await fixture(t)
+  fs.writeFileSync(path.join(f.dataDir, 'study_habits.json'), JSON.stringify({ '2026-10-16': entry }))
+  assert.equal((await f.put('2026-10-16', { ...entry, summary: '修改旧记录' })).data._pts, 0)
+  const pointsFile = path.join(f.dataDir, 'points.json')
+  fs.writeFileSync(pointsFile, '{broken')
+  assert.equal((await f.put('2026-10-15', entry)).status, 500)
+  assert.equal(fs.readFileSync(pointsFile, 'utf8'), '{broken')
+})

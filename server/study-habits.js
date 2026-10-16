@@ -18,6 +18,23 @@ function validDate(date) {
 
 function attachStudyHabits(app, { dataDir, now = () => new Date() }) {
   const file = path.join(dataDir, 'study_habits.json')
+  const pointsFile = path.join(dataDir, 'points.json')
+  // A stable transaction ID makes retries safe if the check-in write fails after points are saved.
+  function award(date, kind) {
+    const points = fs.existsSync(pointsFile)
+      ? JSON.parse(fs.readFileSync(pointsFile, 'utf8')) : { balance: 0, history: [] }
+    if (!Number.isFinite(points.balance) || !Array.isArray(points.history)) throw new Error('积分数据格式异常')
+    const id = `habit:${date}:${kind}`
+    if (points.history.some(entry => entry.id === id)) return { amount: 0, balance: points.balance }
+    points.balance = Math.round((points.balance + 20) * 100) / 100
+    points.history.unshift({
+      id, type: 'earn', amount: 20,
+      reason: `${date} ${kind === 'study' ? '晨学' : '睡前'}打卡奖励`, date: now().getTime(),
+    })
+    fs.writeFileSync(`${pointsFile}.tmp`, JSON.stringify(points, null, 2))
+    fs.renameSync(`${pointsFile}.tmp`, pointsFile)
+    return { amount: 20, balance: points.balance }
+  }
   function read() {
     if (!fs.existsSync(file)) return {}
     const data = JSON.parse(fs.readFileSync(file, 'utf8'))
@@ -49,14 +66,27 @@ function attachStudyHabits(app, { dataDir, now = () => new Date() }) {
     }
     const data = read()
     const previous = data[date] || {}
+    let earned = 0
+    let balance
+    const rewards = { study: !!previous.rewards?.study, sleep: !!previous.rewards?.sleep }
+    for (const kind of ['study', 'sleep']) {
+      const newlyCompleted = kind === 'study'
+        ? studyCompleted && !previous.studyCompleted : !!bedtime && !previous.bedtime
+      if (newlyCompleted && !rewards[kind]) {
+        const result = award(date, kind)
+        earned += result.amount
+        balance = result.balance
+        rewards[kind] = true
+      }
+    }
     data[date] = {
-      date, studyCompleted, minutes, summary, bedtime,
+      date, studyCompleted, minutes, summary, bedtime, rewards,
       completedAt: studyCompleted ? previous.completedAt || now().toISOString() : null,
       updatedAt: now().toISOString(),
     }
     fs.writeFileSync(`${file}.tmp`, JSON.stringify(data, null, 2))
     fs.renameSync(`${file}.tmp`, file)
-    res.json(data[date])
+    res.json({ ...data[date], _pts: earned, ...(balance !== undefined ? { _balance: balance } : {}) })
   }))
 }
 

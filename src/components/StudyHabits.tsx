@@ -10,6 +10,7 @@ interface HabitRecord {
   summary: string
   bedtime: string
   updatedAt?: string
+  rewards?: { study: boolean; sleep: boolean }
 }
 const localDate = () => new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10)
 const weekday = (date: string) => {
@@ -72,8 +73,15 @@ export default function StudyHabits() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || '保存失败，请重试')
-      setRecords(r => ({ ...r, [date]: data })); setForm(data); setDirty(false)
-      setMessage('已保存')
+      const { _pts, _balance, ...record } = data
+      setRecords(r => ({ ...r, [date]: record })); setForm(record); setDirty(false)
+      if (typeof _balance === 'number') {
+        window.dispatchEvent(new CustomEvent('points-updated', { detail: { balance: _balance } }))
+      }
+      if (_pts > 0) {
+        window.dispatchEvent(new CustomEvent('points-earned', { detail: { amount: _pts, balance: _balance, activity: 'checkin' } }))
+      }
+      setMessage(_pts > 0 ? `打卡成功，获得 ${_pts} 积分` : '已保存')
     } catch (e) { setError(e instanceof Error ? e.message : '保存失败，请重试') }
     finally { setBusy(false) }
   }
@@ -93,7 +101,7 @@ export default function StudyHabits() {
     {loading ? <p role="status">正在读取打卡记录…</p> : <>
       <fieldset disabled={busy} className={styles.editor}>
         <div className={styles.heading}><h3>{form.studyCompleted ? '晨学已完成 ✓' : '晨学'}</h3><Link to="/">去学习 →</Link></div>
-        <p className={styles.hint}>{weekday(date) ? '周一至周五 · 06:00–07:00 · 1 小时' : '周末自由安排，写点收获也很好。'}</p>
+        <p className={styles.hint}>{weekday(date) ? `周一至周五 · 06:00–07:00 · ${form.rewards?.study ? '20 积分已领取' : '打卡 +20 积分'}` : '周末自由安排，写点收获也很好。'}</p>
         <label className={styles.field}>学习小结<textarea rows={3} maxLength={5000} value={form.summary} placeholder="今天学到了什么？" onChange={e => change({ summary: e.target.value })} /></label>
         {dirty && <p className={styles.hint}>修改后记得保存</p>}
         <div className={styles.actions}>
@@ -103,7 +111,7 @@ export default function StudyHabits() {
         </div>
         <div className={styles.sleep}>
           <div className={styles.heading}>
-            <div><h3>睡前打卡</h3><p>{records[date]?.bedtime ? `${records[date].bedtime} 已打卡 ✓` : '22:00 前洗漱完毕，上床睡觉'}</p></div>
+            <div><h3>睡前打卡</h3><p>{records[date]?.bedtime ? `${records[date].bedtime} 已打卡 ✓${form.rewards?.sleep ? ' · 20 积分已领取' : ''}` : `22:00 前上床 · ${form.rewards?.sleep ? '20 积分已领取' : '打卡 +20 积分'}`}</p></div>
             {!records[date]?.bedtime && <button onClick={() => {
               if (date !== today && !form.bedtime) { setError('补记睡前打卡时，请填写当天实际就寝时间'); return }
               const time = form.bedtime || currentTime()

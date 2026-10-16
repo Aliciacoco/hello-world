@@ -14,7 +14,7 @@ const defaultSettings: DeviceSettings = {
   subscribed: false, time: '20:00', timeZone: 'Asia/Shanghai', lastSentAt: null, lastError: null,
 }
 
-async function api<T>(path: string, body?: unknown): Promise<T> {
+export async function api<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(`/api/mobile/${path}`, body === undefined ? undefined : {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   })
@@ -23,14 +23,14 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data
 }
 
-function serverKey(key: string): Uint8Array<ArrayBuffer> {
+export function serverKey(key: string): Uint8Array<ArrayBuffer> {
   const decoded = atob(key.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - key.length % 4) % 4))
   const bytes = new Uint8Array(new ArrayBuffer(decoded.length))
   for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i)
   return bytes
 }
 
-async function registration() {
+export async function registration() {
   const result = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
   if (result.active) return result
   return Promise.race([
@@ -119,9 +119,6 @@ export default function MobilePoints() {
   const disable = () => run('disable', async () => {
     await api('unsubscribe', { endpoint })
     setSettings(defaultSettings)
-    const reg = await registration()
-    const subscription = await reg.pushManager.getSubscription()
-    if (subscription) await subscription.unsubscribe()
     setEndpoint('')
     setMessage('本设备的每日提醒已关闭')
   })

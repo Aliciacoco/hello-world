@@ -8,7 +8,6 @@ import PointsPage from './pages/PointsPage'
 import ConfigPage from './pages/ConfigPage'
 import DailyExplore from './components/DailyExplore'
 import CheckinPage from './pages/CheckinPage'
-import { CheckinProvider } from './contexts/CheckinContext'
 
 // 路由切换时回到顶部，避免沿用上一页的滚动位置导致标题/顶部按钮被固定导航栏遮挡
 function ScrollToTop() {
@@ -27,7 +26,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <CheckinProvider>
         <Navbar />
         <PointToast />
         <main>
@@ -40,7 +38,6 @@ export default function App() {
             <Route path="/checkin" element={<CheckinPage />} />
           </Routes>
         </main>
-      </CheckinProvider>
     </BrowserRouter>
   )
 }

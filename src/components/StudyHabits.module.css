@@ -1,0 +1,28 @@
+.root { margin-bottom: 32px; padding: 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow); }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.heading h2 { font-size: 1.2rem; } .heading h3, .reminders h3, .sleep h3 { font-size: 1rem; }
+.eyebrow { color: var(--text-secondary); font-size: .8rem; margin-bottom: 4px; }
+.badge { background: var(--accent-light); color: var(--accent); padding: 6px 12px; border-radius: 20px; font-size: .85rem; }
+.plan { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+.plan > div { padding: 18px; background: var(--bg-inset); border-radius: 12px; }
+.plan span, .plan p { font-size: .83rem; color: var(--text-secondary); } .plan strong { display: block; font-size: 1.5rem; margin: 6px 0; }
+.week { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 22px; }
+.root button { font-family: inherit; cursor: pointer; color: var(--accent); background: var(--accent-light); border: 1px solid var(--border); border-radius: var(--radius-btn); padding: 8px 12px; }
+.root button:disabled { cursor: not-allowed; opacity: .45; }
+.week button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border-radius: 12px; }
+.week button[aria-pressed="true"] { border-color: var(--accent); } .week strong { font-size: 1.3rem; } .week small { font-size: .7rem; }
+.dateRow, .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+.editor { border: 0; min-width: 0; padding: 0; margin-top: 20px; }
+.field { display: flex; flex-direction: column; gap: 7px; margin: 14px 0 8px; font-size: .9rem; }
+.root input, .root textarea { background: var(--bg-inset); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-input); padding: 10px; font: inherit; max-width: 100%; }
+.root input:focus, .root textarea:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.field input { width: 160px; } .field textarea { width: 100%; resize: vertical; min-height: 90px; }
+.hint { color: var(--text-secondary); font-size: .8rem; margin-top: 8px; }
+.root .primary { background: var(--accent); color: var(--bg-card); }
+.sleep, .reminders, .history { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 20px; }
+.sleep p, .reminders p, .history p { font-size: .85rem; color: var(--text-secondary); margin: 8px 0; }
+.error { color: var(--red); margin-top: 12px; } .success { color: var(--green); margin-top: 12px; }
+.history summary, .options summary { cursor: pointer; font-weight: 500; font-size: .85rem; color: var(--text-secondary); } .history article { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.history { margin-top: 16px; padding-top: 16px; } .history .week { margin-top: 16px; } .options { margin-top: 16px; } .history .reminders { border-top: 0; margin-top: 0; padding-top: 16px; }
+.summary { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .root { padding: 16px; } .plan { grid-template-columns: 1fr; gap: 8px; } .plan strong { font-size: 1.3rem; } .heading h2 { font-size: 1.3rem; } .dateRow input { min-width: 0; } }

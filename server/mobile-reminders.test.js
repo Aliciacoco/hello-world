@@ -173,3 +173,51 @@ test('Scriptable renders fresh data, marks offline cache and clears it on token 
   assert.equal(cache.size, 0)
   assert.ok(lines.includes('凭证失效，请重新下载'))
 })
+
+test('habit reminders send on weekday mornings and every evening, persist deduplication, and coexist with points', async t => {
+  const sent = []
+  const f = await fixture(t, async (sub, payload) => sent.push(JSON.parse(payload)))
+  const base = { subscription, origin: 'https://coco-os.cn', time: '20:00', timeZone: 'Asia/Shanghai' }
+  assert.equal((await f.post('subscribe', base)).status, 200)
+  assert.equal((await f.post('subscribe', { ...base, kind: 'habits' })).status, 200)
+  await f.reminders.tick(new Date('2026-10-15T21:54:00Z')) // Friday 05:54 Beijing
+  assert.equal(sent.length, 0)
+  await f.reminders.tick(new Date('2026-10-15T21:55:00Z'))
+  await f.reminders.tick(new Date('2026-10-15T21:56:00Z'))
+  assert.equal(sent.length, 1)
+  assert.match(sent[0].title, /晨学/)
+  assert.equal(sent[0].url, 'https://coco-os.cn/checkin')
+  await f.reminders.tick(new Date('2026-10-16T13:30:00Z'))
+  assert.equal(sent.length, 2)
+  assert.match(sent[1].body, /洗漱/)
+  f.reminders.stop()
+  const restarted = attachMobileReminders(express(), {
+    dataDir: f.dataDir, readPoints: () => f.points, sendNotification: async (sub, payload) => sent.push(JSON.parse(payload)),
+  })
+  t.after(() => restarted.stop())
+  await restarted.tick(new Date('2026-10-16T13:31:00Z'))
+  await restarted.tick(new Date('2026-10-16T21:55:00Z')) // Saturday morning: no study reminder
+  assert.equal(sent.length, 2)
+  await restarted.tick(new Date('2026-10-17T13:30:00Z')) // Saturday evening
+  assert.equal(sent.length, 3)
+  assert.equal((await f.post('unsubscribe', { endpoint: subscription.endpoint, kind: 'habits' })).status, 200)
+  assert.equal((await f.post('device', { endpoint: subscription.endpoint })).data.subscribed, true)
+  assert.equal((await f.post('device', { endpoint: subscription.endpoint, kind: 'habits' })).data.subscribed, false)
+})
+
+test('habit delivery retries a failed slot without duplicating success or cancelling other reminder types', async t => {
+  let calls = 0
+  const f = await fixture(t, async () => {
+    calls++
+    if (calls === 1) throw Object.assign(new Error('temporary'), { statusCode: 503 })
+  })
+  await f.post('subscribe', { subscription, origin: 'https://coco-os.cn', kind: 'habits' })
+  await f.reminders.tick(new Date('2026-10-15T21:55:00Z'))
+  await f.reminders.tick(new Date('2026-10-15T21:56:00Z'))
+  assert.equal(calls, 1)
+  await f.reminders.tick(new Date('2026-10-15T22:10:00Z'))
+  await f.reminders.tick(new Date('2026-10-15T22:11:00Z'))
+  assert.equal(calls, 2)
+  await f.reminders.tick(new Date('2026-10-16T13:30:00Z'))
+  assert.equal(calls, 3)
+})

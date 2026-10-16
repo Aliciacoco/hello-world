@@ -77,6 +77,16 @@ function isDue(device, now) {
     && (!device.retryAfter || now.getTime() >= device.retryAfter)
 }
 
+function habitSchedules(device, now) {
+  const date = localClock(now, 'Asia/Shanghai').date
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay()
+  device.habitSlots ||= { morning: {}, evening: {} }
+  return [
+    ...(day >= 1 && day <= 5 ? [{ slot: device.habitSlots.morning, time: '05:55', name: 'morning' }] : []),
+    { slot: device.habitSlots.evening, time: '21:30', name: 'evening' },
+  ]
+}
+
 function attachMobileReminders(app, { dataDir, readPoints, sendNotification = webpush.sendNotification }) {
   const file = path.join(dataDir, 'mobile_reminders.json')
   let state
@@ -104,7 +114,8 @@ function attachMobileReminders(app, { dataDir, readPoints, sendNotification = we
   }
 
   function endpointDevice(req, res) {
-    const device = state.devices.find(d => d.subscription.endpoint === req.body?.endpoint)
+    const device = state.devices.find(d => d.subscription.endpoint === req.body?.endpoint
+      && (d.kind || 'points') === (req.body?.kind || 'points'))
     if (!device) res.status(404).json({ error: '本设备尚未开启提醒，请重新开启' })
     return device
   }
@@ -152,22 +163,25 @@ function attachMobileReminders(app, { dataDir, readPoints, sendNotification = we
   })
 
   app.post('/api/mobile/device', (req, res) => {
-    const device = state.devices.find(d => d.subscription.endpoint === req.body?.endpoint)
+    const device = state.devices.find(d => d.subscription.endpoint === req.body?.endpoint
+      && (d.kind || 'points') === (req.body?.kind || 'points'))
     res.set('Cache-Control', 'no-store').json(deviceView(device))
   })
 
   app.post('/api/mobile/subscribe', route((req, res) => {
     const { time = '20:00', timeZone = 'Asia/Shanghai', origin } = req.body
+    const kind = req.body.kind || 'points'
+    if (!['points', 'habits'].includes(kind)) throw new Error('提醒类型无效')
     validateSchedule(time, timeZone)
     const subscription = validateSubscription(req.body.subscription)
     const subject = validateOrigin(origin, true)
-    let device = state.devices.find(d => d.subscription.endpoint === subscription.endpoint)
+    let device = state.devices.find(d => d.subscription.endpoint === subscription.endpoint && (d.kind || 'points') === kind)
     if (!device) {
       if (state.devices.length >= 20) throw new Error('订阅设备过多，请先关闭旧设备提醒')
       device = { subscription }
       state.devices.push(device)
     }
-    Object.assign(device, { subscription, time, timeZone, origin: subject, lastError: null, retryAfter: 0 })
+    Object.assign(device, { subscription, kind, time, timeZone, origin: subject, lastError: null, retryAfter: 0 })
     save()
     res.json(deviceView(device))
   }))
@@ -182,36 +196,43 @@ function attachMobileReminders(app, { dataDir, readPoints, sendNotification = we
   }))
 
   app.post('/api/mobile/unsubscribe', (req, res) => {
-    state.devices = state.devices.filter(d => d.subscription.endpoint !== req.body?.endpoint)
+    state.devices = state.devices.filter(d => !(d.subscription.endpoint === req.body?.endpoint
+      && (d.kind || 'points') === (req.body?.kind || 'points')))
     save()
     res.json({ ok: true })
   })
 
-  async function send(device, test, now = new Date()) {
+  async function send(device, test, now = new Date(), habit = null) {
     const summary = pointsSummary(readPoints(), now, device.timeZone)
-    const body = `当前 ${summary.balance.toFixed(1)} 分，可消费 ¥${summary.availableYuan.toFixed(1)}。`
+    let body = `当前 ${summary.balance.toFixed(1)} 分，可消费 ¥${summary.availableYuan.toFixed(1)}。`
       + `今日获得 ${summary.earnedToday.toFixed(1)} 分，消费 ${summary.spentToday.toFixed(1)} 分。买之前看一眼，花完记一笔。`
+    const habits = device.kind === 'habits'
+    const morning = habit?.name === 'morning'
+    if (habits) body = morning ? '早上 6:00–7:00，留一小时给学习。完成后打卡，写下今天的小结。'
+      : '现在开始洗漱，22:00 前上床睡觉，为明早的学习留足精力。洗漱完毕、准备睡觉后记得打卡。'
+    const delivery = habit?.slot || device
     try {
       await sendNotification(device.subscription, JSON.stringify({
-        title: test ? '积分提醒 · 测试' : '今晚的消费积分', body,
-        url: `${device.origin}/points?redeem=1`, tag: test ? 'points-test' : `points-${summary.date}`,
+        title: habits ? (test ? '学习与早睡提醒 · 测试' : morning ? '晨学还有 5 分钟开始' : '该准备洗漱睡觉了') : test ? '积分提醒 · 测试' : '今晚的消费积分', body,
+        url: `${device.origin}${habits ? '/checkin' : '/points?redeem=1'}`,
+        tag: test ? `${habits ? 'habits' : 'points'}-test` : `${habits ? `habits-${habit?.name}` : 'points'}-${summary.date}`,
       }), { TTL: 1800, timeout: 10000, urgency: 'normal', vapidDetails: {
         subject: process.env.VAPID_SUBJECT || device.origin,
         publicKey: state.vapid.publicKey, privateKey: state.vapid.privateKey,
       } })
       device.lastError = null
-      device.retryAfter = 0
+      delivery.retryAfter = 0
       if (!test) {
-        device.lastSentDate = summary.date
+        delivery.lastSentDate = summary.date
         device.lastSentAt = now.toISOString()
       }
       save()
     } catch (error) {
       if ([404, 410].includes(error.statusCode)) {
-        state.devices = state.devices.filter(d => d !== device)
+        state.devices = state.devices.filter(d => d.subscription.endpoint !== device.subscription.endpoint)
       } else {
         device.lastError = '通知发送失败，请稍后测试或重新开启提醒'
-        device.retryAfter = now.getTime() + 15 * 60 * 1000
+        delivery.retryAfter = now.getTime() + 15 * 60 * 1000
       }
       save()
       throw new Error([404, 410].includes(error.statusCode) ? '订阅已过期，请重新开启提醒' : '通知发送失败，请稍后重试')
@@ -236,6 +257,16 @@ function attachMobileReminders(app, { dataDir, readPoints, sendNotification = we
 
   async function tick(now = new Date()) {
     for (const device of [...state.devices]) {
+      if (device.kind === 'habits') {
+        for (const habit of habitSchedules(device, now)) {
+          if (!isDue({ ...habit.slot, time: habit.time, timeZone: 'Asia/Shanghai' }, now) || sending.has(device)) continue
+          sending.add(device)
+          try { await send(device, false, now, habit) } catch {
+            console.warn('[mobile-reminders] Habit notification failed; will retry later')
+          } finally { sending.delete(device) }
+        }
+        continue
+      }
       if (!isDue(device, now) || sending.has(device)) continue
       sending.add(device)
       try { await send(device, false, now) } catch {

@@ -25,7 +25,7 @@ jobs:
         run: npm run build
 
       - name: Check mobile reminders
-        run: node --test server/mobile-reminders.test.js
+        run: node --test server/mobile-reminders.test.js server/study-habits.test.js
 
       - name: Setup SSH
         run: |
